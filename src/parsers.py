@@ -1,0 +1,108 @@
+import json
+import re
+from datetime import datetime
+from pathlib import Path
+
+from src.models import GptRecord, TopicGroup, TopicStock
+
+
+def normalize_date(raw_date: str) -> str:
+    value = raw_date.strip()
+    for fmt in ("%Y-%m-%d", "%Y%m%d"):
+        try:
+            return datetime.strptime(value, fmt).strftime("%Y%m%d")
+        except ValueError:
+            continue
+    raise ValueError("日期格式错误，请使用 YYYY-MM-DD 或 YYYYMMDD")
+
+
+def parse_json_file(file_path: Path) -> dict:
+    with file_path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def parse_res_code_file(file_path: Path) -> dict[str, dict[str, str]]:
+    if not file_path.exists():
+        return {}
+    content = file_path.read_text(encoding="utf-8")
+    start_index = content.find("(")
+    end_index = content.rfind(")")
+    if start_index == -1 or end_index == -1:
+        return {}
+
+    raw_body = content[start_index + 1 : end_index]
+    cleaned = re.sub(r"//.*", "", raw_body)
+    payload = json.loads(cleaned)
+
+    stock_data = payload.get("data", {})
+    result: dict[str, dict[str, str]] = {}
+    for code, metrics in stock_data.items():
+        result[str(code)] = {
+            "turnover": str(metrics.get("19", "")),
+            "turnover_rate": str(metrics.get("1968584", "")),
+        }
+    return result
+
+
+def _extract_stock_metrics(
+    code: str, code_metrics: dict[str, dict[str, str]]
+) -> tuple[str, str]:
+    key = code[-6:]
+    metrics = code_metrics.get(key, {})
+    return metrics.get("turnover", ""), metrics.get("turnover_rate", "")
+
+
+def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple[list[GptRecord], list[TopicGroup]]:
+    gpt_records: list[GptRecord] = []
+    topic_groups: list[TopicGroup] = []
+
+    for group in payload.get("data", []):
+        group_name = str(group.get("name", "")).strip()
+        stock_list = group.get("list", [])
+        if not group_name or not isinstance(stock_list, list):
+            continue
+
+        reason = str(group.get("reason") or "")
+        topic_stocks: list[TopicStock] = []
+        for stock in stock_list:
+            stock_name = str(stock.get("name", "")).strip()
+            code = str(stock.get("code", "")).strip()
+            action_info = (
+                stock.get("article", {})
+                .get("action_info", {})
+            )
+            num = str(action_info.get("num") or "")
+            time = str(action_info.get("time") or "")
+            expound = str(action_info.get("expound") or "")
+            turnover, turnover_rate = _extract_stock_metrics(code, code_metrics)
+
+            topic_stocks.append(
+                TopicStock(
+                    name=stock_name,
+                    code=code,
+                    num=num,
+                    expound=expound,
+                )
+            )
+
+            gpt_records.append(
+                GptRecord(
+                    stock_name=stock_name,
+                    code=code,
+                    num=num,
+                    limit_up_time=time,
+                    turnover=turnover,
+                    turnover_rate=turnover_rate,
+                    theme=group_name,
+                )
+            )
+
+        topic_groups.append(
+            TopicGroup(
+                name=group_name,
+                reason=reason,
+                stocks=topic_stocks,
+            )
+        )
+
+    return gpt_records, topic_groups
