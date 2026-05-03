@@ -1,0 +1,24 @@
+fetch("https://app.jiuyangongshe.com/jystock-app/api/v1/action/field", {
+  "headers": {
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "platform": "3",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "timestamp": "1777001558602",
+    "token": "6e4ae80a9c3ab6c7057b0478f87401de"
+  },
+  "referrer": "https://www.jiuyangongshe.com/",
+  "body": "{\"date\":\"2026-04-22\",\"pc\":1}",
+  "method": "POST",
+  "mode": "cors",
+  "credentials": "include"
+});
+这里是请求，代表着韭研公社2026.4.22日的异动（涨停板）。
