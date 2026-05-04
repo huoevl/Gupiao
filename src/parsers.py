@@ -17,8 +17,24 @@ def normalize_date(raw_date: str) -> str:
 
 
 def parse_json_file(file_path: Path) -> dict:
-    with file_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    content = file_path.read_text(encoding="utf-8")
+    stripped = content.lstrip("\ufeff \t\r\n")
+    if stripped.startswith("{") or stripped.startswith("["):
+        return json.loads(stripped)
+
+    # 兼容抓包文本：前面有 HTTP 响应头，后面才是 JSON
+    start_index = min(
+        [idx for idx in (content.find("{"), content.find("[")) if idx != -1],
+        default=-1,
+    )
+    if start_index == -1:
+        raise ValueError(f"文件中未找到 JSON 内容: {file_path.name}")
+
+    decoder = json.JSONDecoder()
+    parsed, _ = decoder.raw_decode(content[start_index:])
+    if not isinstance(parsed, dict):
+        raise ValueError(f"JSON 根节点不是对象: {file_path.name}")
+    return parsed
 
 
 def parse_res_code_file(file_path: Path) -> dict[str, dict[str, str]]:

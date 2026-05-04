@@ -1,24 +1,121 @@
-fetch("https://app.jiuyangongshe.com/jystock-app/api/v1/action/field", {
-  "headers": {
-    "accept": "application/json, text/plain, */*",
-    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
-    "cache-control": "no-cache",
-    "content-type": "application/json",
-    "platform": "3",
-    "pragma": "no-cache",
-    "sec-ch-ua": "\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-site",
-    "timestamp": "1777001558602",
-    "token": "6e4ae80a9c3ab6c7057b0478f87401de"
-  },
-  "referrer": "https://www.jiuyangongshe.com/",
-  "body": "{\"date\":\"2026-04-22\",\"pc\":1}",
-  "method": "POST",
-  "mode": "cors",
-  "credentials": "include"
-});
-这里是请求，代表着韭研公社2026.4.22日的异动（涨停板）。
+
+方式1：
+curl -X POST 'https://app.jiuyangongshe.com/jystock-app/api/v1/action/field' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Content-Type: application/json' -H 'sec-ch-ua-platform: "Windows"' -H 'timestamp: 1777873633813' -H 'sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' -H 'sec-ch-ua-mobile: ?0' -H 'DNT: 1' -H 'token: 29c17490ae42164cb5c6003970481b31' -H 'platform: 3' -H 'Origin: https://www.jiuyangongshe.com' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: SESSION=ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777873425' -d '{"date":"2026-04-23","pc":1}' --http1.1
+
+说明：
+  这里是请求，代表着韭研公社2026.4.23日的异动（涨停板）。
+
+
+
+POST /jystock-app/api/v1/action/field HTTP/1.1
+Host: app.jiuyangongshe.com
+Connection: keep-alive
+Content-Length: 28
+sec-ch-ua-platform: "Windows"
+timestamp: 1777876060161
+sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+Accept: application/json, text/plain, */*
+DNT: 1
+Content-Type: application/json
+token: 6213ce73d510aa3150ce89dba7e529a0
+platform: 3
+Origin: https://www.jiuyangongshe.com
+Sec-Fetch-Site: same-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://www.jiuyangongshe.com/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6
+Cookie: SESSION=ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777875926
+
+{"date":"2026-04-21","pc":1}
+
+
+POST /jystock-app/api/v1/action/field HTTP/1.1
+Host: app.jiuyangongshe.com
+Connection: keep-alive
+Content-Length: 28
+sec-ch-ua-platform: "Windows"
+timestamp: 1777876572509
+sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+Accept: application/json, text/plain, */*
+DNT: 1
+Content-Type: application/json
+token: 10a3727ffe5d5842aac99ac8da62e57c
+platform: 3
+Origin: https://www.jiuyangongshe.com
+Sec-Fetch-Site: same-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://www.jiuyangongshe.com/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6
+Cookie: SESSION=ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777875926
+
+{"date":"2026-04-21","pc":1}
+
+
+
+
+
+POST https://app.jiuyangongshe.com/jystock-app/api/v1/action/field HTTP/1.1
+Accept-Encoding: identity
+Content-Length: 31
+Host: app.jiuyangongshe.com
+Accept: application/json, text/plain, */*
+Content-Type: application/json
+Platform: 3
+Terminal: pc
+App: 9.9.9
+Timestamp: 1777876132162
+Token: ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2
+User-Agent: Mozilla/5.0
+Origin: https://www.jiuyangongshe.com
+Referer: https://www.jiuyangongshe.com/
+Connection: close
+
+{"date": "2026-04-21", "pc": 1}
+
+
+POST https://app.jiuyangongshe.com/jystock-app/api/v1/action/field HTTP/1.1
+Host: app.jiuyangongshe.com
+Connection: close
+Content-Length: 28
+Sec-Ch-Ua-Platform: "Windows"
+Timestamp: 1777876530438
+Sec-Ch-Ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36
+Accept: application/json, text/plain, */*
+Dnt: 1
+Content-Type: application/json
+Token: 6213ce73d510aa3150ce89dba7e529a0
+Platform: 3
+Origin: https://www.jiuyangongshe.com
+Sec-Fetch-Site: same-site
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://www.jiuyangongshe.com/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6
+Cookie: SESSION=ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777875926
+
+{"date": "2026-04-21", "pc": 1}
+
+
+HTTP/1.1 200
+Date: Mon, 04 May 2026 06:38:50 GMT
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+Access-Control-Allow-Origin: https://www.jiuyangongshe.com
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE
+Access-Control-Allow-Headers: Access-Control-Allow-Headers,Access-Control-Allow-Origin,DNT,X-CustomHeader,X-Requested-With,Content-Type,source,referer-host,jb-authorization,manager-authorization,guest-id,platform,token,Token,Access-Token,timestamp,authorization,Page-Time,terminal,App
+Access-Control-Allow-Credentials: true
+tlogTraceId: 43121203348880907829248
+
+{"msg":"请求异常","data":{},"errCode":"9","serverTime":1777876730}

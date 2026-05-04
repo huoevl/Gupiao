@@ -1,0 +1,50 @@
+Server: openresty
+Date: Mon,
+04 May 2026 05: 53: 39 GMT
+Content-Type: text/html; charset=UTF-8
+Vary: Accept-Encoding
+news: 200_6
+news: wc_zixun_zhenggu_210_178
+Content-Encoding: gzip
+X-Cache: MISS from cachewc61.10jqka.com.cn
+Via: 1.1 cachewc61.10jqka.com.cn (squid), http/1.1 cachedglt89-67.10jqka.com.cn (ApacheTrafficServer/10.0.3 [cMsSf
+])
+Age: 0
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+showStockData({
+    "info": {
+        "300619": {
+            "name": "\u91d1\u94f6\u6cb3"
+        }
+    },
+    "data": {
+        "300619": {
+            "10": "41.03",
+            "8": "42.16",
+            "9": "40.94",
+            "13": "7180911.00",
+            "19": "296685090.00",
+            "7": "41.86",
+            "15": "3936487.00",
+            "14": "2636824.00",
+            "69": "50.40",
+            "70": "33.60",
+            "12": "1",
+            "17": "24700.00",
+            "264648": "-0.970",
+            "199112": "-2.310",
+            "1968584": "4.902",
+            "2034120": "",
+            "1378761": "41.316",
+            "526792": "2.905",
+            "395720": "17900.000",
+            "461256": "28.732",
+            "3475914": "6010340900.000",
+            "1771976": "0.447",
+            "6": "42.00",
+            "11": ""
+        }
+    }
+})

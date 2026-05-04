@@ -1,0 +1,70 @@
+HTTP/1.1 200
+Date: Mon,
+04 May 2026 04: 25: 00 GMT
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Access-Control-Allow-Origin: https: //www.jiuyangongshe.com
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE
+Access-Control-Allow-Headers: Access-Control-Allow-Headers,Access-Control-Allow-Origin,DNT,X-CustomHeader,X-Requested-With,Content-Type,source,referer-host,jb-authorization,manager-authorization,guest-id,platform,token,Token,Access-Token,timestamp,authorization,Page-Time,terminal,App
+Access-Control-Allow-Credentials: true
+tlogTraceId: 20531203315201195114496
+
+{
+    "msg": "",
+    "data": {
+        "user_id": "8217170559234acba557440b8edb40f3",
+        "country_code": "+86",
+        "phone": "15185759660",
+        "nickname": "何吓吓",
+        "avatar": "https://jiucaigongshe.oss-cn-beijing.aliyuncs.com/1732515698232.png",
+        "gender": 1,
+        "profile": "这个人很懒，什么都没有留下",
+        "open_id": "oeEsTs_qjwg0giC0ckAGdDPakw0E",
+        "pc_open_id": null,
+        "union_id": "o_jtewc0Yb3JlXAcX-6Yj4EGvPg8",
+        "city": null,
+        "area": null,
+        "follow_count": 5,
+        "fans_count": 0,
+        "like_count": 0,
+        "posts": 0,
+        "energy": 100,
+        "integral": 0.0,
+        "integral_grade": 10,
+        "balance": 0,
+        "interaction": 0.0,
+        "verify": 0,
+        "msg_vibrate": 0,
+        "faction": 0,
+        "faction_id": "",
+        "investment_style": "",
+        "investment_style_id": "",
+        "status": 0,
+        "downgrade": 0,
+        "is_sys_user": 0,
+        "sys_user_type": null,
+        "reward_read_day": 7,
+        "reward_read_time": null,
+        "no_read_limit_time": null,
+        "change_nickname_limit_time": null,
+        "change_info_limit_time": null,
+        "gag_time": null,
+        "lock_time": null,
+        "pwd_error": 0,
+        "medal_count": 0,
+        "article_reject_count": 0,
+        "comment_reject_count": 0,
+        "withdraw_review": 0,
+        "newest_article_tool_time": null,
+        "create_time": "2024-11-25 14:18:07",
+        "update_time": null,
+        "last_update_time": "2026-03-31 09:09:37",
+        "low_quality": 0,
+        "has_pwd": 1,
+        "user_no": "8217170559234acba557440b8edb40f3",
+        "sessionToken": "ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2"
+    },
+    "errCode": "0",
+    "serverTime": 1777868700
+}

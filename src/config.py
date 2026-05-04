@@ -4,6 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DOC_DIR = BASE_DIR / "_doc"
 OUT_DIR = BASE_DIR / "out"
+APP_STATE_FILE = BASE_DIR / ".app_state.json"
 
 RES10_FILE_TEMPLATE = "res_10_{date}.json"
 RES_CODE_FILE = "res_code.json"

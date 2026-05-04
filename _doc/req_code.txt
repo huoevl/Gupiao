@@ -1,18 +1,1 @@
-fetch("https://qd.10jqka.com.cn/quote.php?cate=real&type=stock&return=json&callback=showStockData&code=300069", {
-  "headers": {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
-    "sec-ch-ua": "\"Not;A=Brand\";v=\"99\", \"Google Chrome\";v=\"139\", \"Chromium\";v=\"139\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
-    "sec-fetch-dest": "document",
-    "sec-fetch-mode": "navigate",
-    "sec-fetch-site": "none",
-    "sec-fetch-user": "?1",
-    "upgrade-insecure-requests": "1"
-  },
-  "body": null,
-  "method": "GET",
-  "mode": "cors",
-  "credentials": "include"
-});
+curl -X GET 'https://qd.10jqka.com.cn/quote.php?cate=real&type=stock&return=json&callback=showStockData&code=300619' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'sec-ch-ua-platform: "Windows"' -H 'sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' -H 'DNT: 1' -H 'sec-ch-ua-mobile: ?0' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: no-cors' -H 'Sec-Fetch-Dest: script' -H 'Referer: https://stockpage.10jqka.com.cn/' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: spversion=20130314; searchGuide=sg; Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1777821468; HMACCOUNT=0F98EC475E290365; _ga=GA1.1.824953103.1777821470; Hm_lvt_722143063e4892925903024537075d0d=1777821474; Hm_lpvt_722143063e4892925903024537075d0d=1777821474; Hm_lvt_929f8b362150b1f77b477230541dbbc2=1777821474; Hm_lpvt_929f8b362150b1f77b477230541dbbc2=1777821474; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1777821474; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1777821474; userid=ths_gu_a5e23070c866b067e9d45e1cccfd6081; search_history=[{%22keyword%22:%22601991%22%2C%22timestamp%22:1777821514450%2C%22type%22:%22general%22}]; _clck=5n2s18%7C2%7Cg5q%7C0%7C0; _clsk=pj93vrt09sch%7C1777821516946%7C1%7C1%7C; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1777867649; _ga_H2RK0R0681=GS2.1.s1777867651$o2$g0$t1777867651$j60$l0$h0; historystock=300619%7C*%7C600821%7C*%7C300069%7C*%7C300068%7C*%7C300067; v=A3y-hQzqOfd81A0rMupyM559TRErdSCfohk0Y1b9iGdKIRJPfoXwL_IpBPGl' --http1.1
