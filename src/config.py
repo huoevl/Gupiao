@@ -7,11 +7,11 @@ OUT_DIR = BASE_DIR / "out"
 APP_STATE_FILE = BASE_DIR / ".app_state.json"
 
 RES10_FILE_TEMPLATE = "res_10_{date}.json"
-RES_CODE_FILE = "res_code.json"
+RES_CODE_FILE = "res_code.txt"
 
 FEATURE_FORMATS = {
     "Gpt规则": ["excel", "csv", "json"],
-    "涨停归类": ["xmind"],
+    "涨停归类": ["xmind", "json"],
 }
 
 GPT_EXPORT_COLUMNS = [

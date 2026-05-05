@@ -1,15 +1,18 @@
 from pathlib import Path
+from datetime import datetime, timedelta
 import json
 import os
 import re
 import ssl
 import time
 from urllib import error, request
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from src.config import DOC_DIR, FEATURE_FORMATS, OUT_DIR, RES10_FILE_TEMPLATE, RES_CODE_FILE
+from src.config import DOC_DIR, FEATURE_FORMATS, OUT_DIR
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
-from src.parsers import normalize_date, parse_json_file, parse_res10, parse_res_code_file
+from src.exporters.ztfl_exporter import export_topic_json
+from src.parsers import format_compact_amount, format_percent, normalize_date, parse_res10
 
 
 class ExportService:
@@ -20,25 +23,51 @@ class ExportService:
         self.session_token = os.getenv("JYG_TOKEN", "").strip()
         self.login_url, self.login_headers_template = self._load_login_request_template()
         self.action_field_url, self.action_field_headers_template = self._load_action_field_request_template()
+        self.code_url_template, self.code_headers_template = self._load_code_request_template()
+        self.code_metrics_cache: dict[str, dict[str, str]] = {}
+        self._latest_trading_day_cache: str | None = None
 
     def get_available_dates(self) -> list[str]:
-        dates: list[str] = []
-        for file_path in self.doc_dir.glob("res_10_*.*"):
-            name = file_path.stem
-            date_value = name.replace("res_10_", "")
-            if len(date_value) == 8 and date_value.isdigit():
-                dates.append(date_value)
-        return sorted(dates)
+        return []
 
-    def _find_res10_path(self, date_value: str) -> Path | None:
-        normalized = normalize_date(date_value)
-        preferred = self.doc_dir / RES10_FILE_TEMPLATE.format(date=normalized)
-        if preferred.exists():
-            return preferred
-        txt_fallback = self.doc_dir / f"res_10_{normalized}.txt"
-        if txt_fallback.exists():
-            return txt_fallback
-        return None
+    @staticmethod
+    def fallback_latest_trading_day(today: datetime | None = None) -> str:
+        now = today or datetime.now()
+        weekday = now.weekday()
+        base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if weekday == 6:  # Sunday -> previous Friday
+            return (base - timedelta(days=2)).strftime("%Y%m%d")
+        if weekday == 5:  # Saturday -> previous Friday
+            return (base - timedelta(days=1)).strftime("%Y%m%d")
+        return base.strftime("%Y%m%d")
+
+    def get_latest_trading_day(self) -> str:
+        if self._latest_trading_day_cache:
+            return self._latest_trading_day_cache
+
+        token = self._resolve_token()
+        if not token:
+            return self.fallback_latest_trading_day()
+
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        for offset in range(0, 20):
+            candidate = (today - timedelta(days=offset)).strftime("%Y%m%d")
+            try:
+                payload = self._fetch_remote_res10(candidate)
+            except Exception:
+                continue
+            data = payload.get("data", [])
+            if not isinstance(data, list):
+                continue
+            has_stocks = any(
+                isinstance(group, dict) and isinstance(group.get("list"), list) and len(group.get("list", [])) > 0
+                for group in data
+            )
+            if has_stocks:
+                self._latest_trading_day_cache = candidate
+                return candidate
+
+        return self.fallback_latest_trading_day(today)
 
     @staticmethod
     def _to_dash_date(date_value: str) -> str:
@@ -121,6 +150,136 @@ class ExportService:
         else:
             url = f"https://{host}{target}"
         return url, headers
+
+    def _load_code_request_template(self) -> tuple[str, dict[str, str]]:
+        req_file = self.doc_dir / "req_code.txt"
+        default_url = (
+            "https://qd.10jqka.com.cn/quote.php?"
+            "cate=real&type=stock&return=json&callback=showStockData&code=300069"
+        )
+        if not req_file.exists():
+            return default_url, {}
+
+        text = req_file.read_text(encoding="utf-8")
+        first_line = ""
+        for line in text.splitlines():
+            value = line.strip()
+            if value.startswith("curl -X GET"):
+                first_line = value
+                break
+        if not first_line:
+            return default_url, {}
+
+        url_match = re.search(r"curl -X GET '([^']+)'", first_line)
+        url = url_match.group(1) if url_match else default_url
+        headers: dict[str, str] = {}
+        for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", first_line):
+            headers[key.strip()] = val.strip()
+        return url, headers
+
+    @staticmethod
+    def _build_code_request_url(url_template: str, codes: list[str]) -> str:
+        parsed = urlparse(url_template)
+        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+        query["code"] = ",".join(codes)
+        new_query = urlencode(query)
+        return urlunparse(
+            (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
+        )
+
+    @staticmethod
+    def _parse_code_metrics_text(raw: str) -> dict[str, dict[str, str]]:
+        start_index = raw.find("(")
+        end_index = raw.rfind(")")
+        if start_index == -1 or end_index == -1 or end_index <= start_index:
+            return {}
+        payload_text = raw[start_index + 1 : end_index]
+        payload = json.loads(payload_text)
+        data = payload.get("data", {})
+        if not isinstance(data, dict) or not data:
+            return {}
+        result: dict[str, dict[str, str]] = {}
+        for code, metrics in data.items():
+            if not isinstance(metrics, dict):
+                continue
+            code_key = str(code)[-6:]
+            result[code_key] = {
+                "turnover": format_compact_amount(metrics.get("19", "")),
+                "turnover_rate": format_percent(metrics.get("1968584", "")),
+            }
+        return result
+
+    def _fetch_code_metrics_batch(self, codes: list[str]) -> dict[str, dict[str, str]]:
+        clean_codes = [code[-6:] for code in codes if code and len(code) >= 6]
+        clean_codes = list(dict.fromkeys(clean_codes))
+        if not clean_codes:
+            return {}
+        uncached_codes = [code for code in clean_codes if code not in self.code_metrics_cache]
+        if not uncached_codes:
+            return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
+
+        url = self._build_code_request_url(self.code_url_template, uncached_codes)
+        headers = dict(self.code_headers_template)
+        for key in ["Host", "host", "Connection", "connection", "Content-Length", "content-length"]:
+            headers.pop(key, None)
+        headers.update(
+            {
+                "Accept": headers.get("Accept", "*/*"),
+                "User-Agent": headers.get(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+                ),
+                "Accept-Encoding": "identity",
+                "Referer": headers.get("Referer", "https://stockpage.10jqka.com.cn/"),
+            }
+        )
+        req = request.Request(url=url, method="GET", headers=headers)
+        try:
+            with self._open_url(req, timeout=15) as resp:
+                raw = resp.read().decode("utf-8", errors="ignore")
+            batch_metrics = self._parse_code_metrics_text(raw)
+        except Exception:
+            batch_metrics = {}
+
+        for code in uncached_codes:
+            self.code_metrics_cache[code] = batch_metrics.get(
+                code,
+                {"turnover": "", "turnover_rate": ""},
+            )
+        return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
+
+    def _enrich_metrics_from_remote(self, payload: dict, metrics: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+        codes: set[str] = set()
+        for group in payload.get("data", []):
+            stock_list = group.get("list", [])
+            if not isinstance(stock_list, list):
+                continue
+            for stock in stock_list:
+                raw_code = str(stock.get("code", "")).strip()
+                if len(raw_code) >= 6:
+                    codes.add(raw_code[-6:])
+
+        need_fetch: list[str] = []
+        for code in codes:
+            existed = metrics.get(code, {})
+            if existed.get("turnover") and existed.get("turnover_rate"):
+                continue
+            need_fetch.append(code)
+
+        batch_size = 100
+        for start in range(0, len(need_fetch), batch_size):
+            chunk = need_fetch[start : start + batch_size]
+            batch_metrics = self._fetch_code_metrics_batch(chunk)
+            for code in chunk:
+                fetched = batch_metrics.get(code, {})
+                if not fetched:
+                    continue
+                existed = metrics.get(code, {})
+                merged = dict(existed)
+                merged.update({k: v for k, v in fetched.items() if v})
+                metrics[code] = merged
+        return metrics
 
     @staticmethod
     def _inject_session_cookie(cookie_header: str, session_token: str) -> str:
@@ -324,15 +483,13 @@ class ExportService:
         return result
 
     def _load_res10_payload(self, date_value: str) -> dict:
-        res10_path = self._find_res10_path(date_value)
-        if res10_path:
-            return parse_json_file(res10_path)
+        # 主流程只使用实时请求数据；_doc 中文件仅作为示例/模板。
         return self._fetch_remote_res10(date_value)
 
     def _load_records(self, date_value: str):
-        res_code_path = self.doc_dir / RES_CODE_FILE
         payload = self._load_res10_payload(date_value)
-        metrics = parse_res_code_file(res_code_path)
+        metrics: dict[str, dict[str, str]] = {}
+        metrics = self._enrich_metrics_from_remote(payload, metrics)
         return parse_res10(payload, metrics)
 
     def preview(self, feature: str, date_value: str, limit: int | None = None) -> tuple[list[str], list[list[str]]]:
@@ -399,8 +556,11 @@ class ExportService:
             else:
                 raise ValueError(f"不支持的格式: {fmt}")
         else:
-            if fmt != "xmind":
-                raise ValueError("涨停归类只支持 xmind 格式")
-            export_xmind(topic_groups, output_path, normalized_date)
+            if fmt == "xmind":
+                export_xmind(topic_groups, output_path, normalized_date)
+            elif fmt == "json":
+                export_topic_json(topic_groups, output_path, normalized_date)
+            else:
+                raise ValueError("涨停归类只支持 xmind/json 格式")
 
         return output_path

@@ -6,6 +6,40 @@ from pathlib import Path
 from src.models import GptRecord, TopicGroup, TopicStock
 
 
+def _trim_decimal(value: float, digits: int = 2) -> str:
+    text = f"{value:.{digits}f}"
+    text = text.rstrip("0").rstrip(".")
+    return text or "0"
+
+
+def format_compact_amount(raw_value: str) -> str:
+    text = str(raw_value).strip()
+    if not text:
+        return ""
+    try:
+        value = float(text.replace(",", ""))
+    except ValueError:
+        return text
+
+    abs_value = abs(value)
+    if abs_value >= 100000000:
+        return f"{_trim_decimal(value / 100000000)}亿"
+    if abs_value >= 10000:
+        return f"{_trim_decimal(value / 10000)}万"
+    return _trim_decimal(value)
+
+
+def format_percent(raw_value: str) -> str:
+    text = str(raw_value).strip()
+    if not text:
+        return ""
+    try:
+        value = float(text.replace("%", "").replace(",", ""))
+    except ValueError:
+        return text if text.endswith("%") else f"{text}%"
+    return f"{_trim_decimal(value)}%"
+
+
 def normalize_date(raw_date: str) -> str:
     value = raw_date.strip()
     for fmt in ("%Y-%m-%d", "%Y%m%d"):
@@ -48,14 +82,17 @@ def parse_res_code_file(file_path: Path) -> dict[str, dict[str, str]]:
 
     raw_body = content[start_index + 1 : end_index]
     cleaned = re.sub(r"//.*", "", raw_body)
-    payload = json.loads(cleaned)
+    try:
+        payload = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return {}
 
     stock_data = payload.get("data", {})
     result: dict[str, dict[str, str]] = {}
     for code, metrics in stock_data.items():
         result[str(code)] = {
-            "turnover": str(metrics.get("19", "")),
-            "turnover_rate": str(metrics.get("1968584", "")),
+            "turnover": format_compact_amount(metrics.get("19", "")),
+            "turnover_rate": format_percent(metrics.get("1968584", "")),
         }
     return result
 

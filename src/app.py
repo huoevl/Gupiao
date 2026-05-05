@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 from pathlib import Path
 import tkinter as tk
@@ -36,23 +36,7 @@ class ExportApp:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _init_default_date(self) -> None:
-        available = self.service.get_available_dates()
-        if available:
-            self.date_var.set(available[-1])
-            return
-        self.date_var.set(self._latest_trading_day().strftime("%Y%m%d"))
-
-    @staticmethod
-    def _latest_trading_day() -> datetime:
-        now = datetime.now()
-        weekday = now.weekday()
-        if weekday == 0:  # Monday -> previous Friday
-            return now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
-        if weekday == 6:  # Sunday -> previous Friday
-            return now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=2)
-        if weekday == 5:  # Saturday -> previous Friday
-            return now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
-        return now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1)
+        self.date_var.set(self.service.get_latest_trading_day())
 
     def _build_ui(self) -> None:
         frame = ttk.Frame(self.root, padding=16)
@@ -303,8 +287,17 @@ class ExportApp:
     def _to_sort_key(value: str):
         text = str(value).strip()
         cleaned = text.replace(",", "")
+        multiplier = 1.0
+        if cleaned.endswith("亿"):
+            multiplier = 100000000.0
+            cleaned = cleaned[:-1]
+        elif cleaned.endswith("万"):
+            multiplier = 10000.0
+            cleaned = cleaned[:-1]
+        if cleaned.endswith("%"):
+            cleaned = cleaned[:-1]
         try:
-            return (0, float(cleaned))
+            return (0, float(cleaned) * multiplier)
         except ValueError:
             return (1, text)
 
