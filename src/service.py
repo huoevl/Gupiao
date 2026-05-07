@@ -28,6 +28,11 @@ class ExportService:
         self.code_url_template, self.code_headers_template = self._load_code_request_template()
         self.code_metrics_cache: dict[str, dict[str, str]] = {}
         self._latest_trading_day_cache: str | None = None
+        self._browser_playwright = None
+        self._code_browser = None
+        self._code_browser_context = None
+        self._code_browser_page = None
+        self._code_browser_user_agent = ""
 
     def get_available_dates(self) -> list[str]:
         return []
@@ -201,6 +206,11 @@ class ExportService:
             return default_url, {}
 
         text = req_file.read_text(encoding="utf-8")
+
+        fetch_template = self._parse_fetch_request_template(text)
+        if fetch_template:
+            return fetch_template
+
         first_line = ""
         for line in text.splitlines():
             value = line.strip()
@@ -215,6 +225,30 @@ class ExportService:
         headers: dict[str, str] = {}
         for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", first_line):
             headers[key.strip()] = val.strip()
+        return url, headers
+
+    def _parse_fetch_request_template(self, text: str) -> tuple[str, dict[str, str]] | None:
+        match = re.search(
+            r"fetch\(\s*(['\"])(.*?)\1\s*,\s*(\{[\s\S]*?\})\s*\)\s*;?",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return None
+
+        url = self._sanitize_code_url(match.group(2))
+        options_text = match.group(3)
+        try:
+            options = json.loads(options_text)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(options, dict):
+            return None
+
+        raw_headers = options.get("headers", {})
+        if not isinstance(raw_headers, dict):
+            raw_headers = {}
+        headers = {str(key).strip(): str(val).strip() for key, val in raw_headers.items()}
         return url, headers
 
     @staticmethod
@@ -257,6 +291,10 @@ class ExportService:
             return {}
         payload_text = raw[start_index + 1 : end_index]
         payload = json.loads(payload_text)
+        return ExportService._parse_code_metrics_payload(payload)
+
+    @staticmethod
+    def _parse_code_metrics_payload(payload: dict) -> dict[str, dict[str, str]]:
         data = payload.get("data", {})
         if not isinstance(data, dict) or not data:
             return {}
@@ -297,6 +335,120 @@ class ExportService:
         items = [item.strip() for item in cookie_header.split(";") if item.strip()]
         clean_items = [item for item in items if not item.lower().startswith("vvvv=")]
         return "; ".join(clean_items)
+
+    @staticmethod
+    def _looks_like_access_denied(raw: str) -> bool:
+        lowered = (raw or "").lower()
+        return any(
+            keyword in lowered
+            for keyword in (
+                "unauthorized",
+                "forbidden",
+                "nginx forbidden",
+                "window.location.href",
+                "chameleon",
+            )
+        )
+
+    def _ensure_code_browser_page(self, user_agent: str, accept_language: str | None):
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as exc:
+            raise RuntimeError("未安装 playwright，请先执行: python -m pip install -r requirements.txt") from exc
+
+        if self._code_browser_page is not None and self._code_browser_user_agent == user_agent:
+            return self._code_browser_page
+
+        self.close_browser_resources()
+        self._browser_playwright = sync_playwright().start()
+        self._code_browser = self._browser_playwright.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        self._code_browser_context = self._code_browser.new_context(
+            user_agent=user_agent,
+            locale="zh-CN",
+            extra_http_headers={
+                "Accept-Language": accept_language or "zh-CN,zh;q=0.9"
+            },
+        )
+        self._code_browser_page = self._code_browser_context.new_page()
+        self._code_browser_page.goto(
+            "https://stockpage.10jqka.com.cn/",
+            wait_until="domcontentloaded",
+            timeout=30000,
+        )
+        self._code_browser_page.wait_for_timeout(1200)
+        self._code_browser_user_agent = user_agent
+        return self._code_browser_page
+
+    def close_browser_resources(self) -> None:
+        page = self._code_browser_page
+        context = self._code_browser_context
+        browser = self._code_browser
+        playwright = self._browser_playwright
+        self._code_browser_page = None
+        self._code_browser_context = None
+        self._code_browser = None
+        self._browser_playwright = None
+        self._code_browser_user_agent = ""
+        for resource in (page, context, browser, playwright):
+            if resource is None:
+                continue
+            try:
+                if hasattr(resource, "stop"):
+                    resource.stop()
+                else:
+                    resource.close()
+            except Exception:
+                pass
+
+    def _fetch_code_metrics_batch_via_browser(
+        self,
+        url: str,
+        user_agent: str,
+        accept_language: str | None,
+    ) -> dict[str, dict[str, str]]:
+        try:
+            page = self._ensure_code_browser_page(user_agent, accept_language)
+            payload_text = page.evaluate(
+                """
+                async ({ url }) => {
+                  return await new Promise((resolve) => {
+                    const timer = setTimeout(() => resolve(""), 15000);
+                    window.showStockData = (payload) => {
+                      clearTimeout(timer);
+                      resolve(JSON.stringify(payload));
+                    };
+                    const oldScript = document.querySelector('script[data-ths-quote="1"]');
+                    if (oldScript) {
+                      oldScript.remove();
+                    }
+                    const script = document.createElement("script");
+                    script.src = url;
+                    script.async = true;
+                    script.dataset.thsQuote = "1";
+                    script.onerror = () => {
+                      clearTimeout(timer);
+                      resolve("");
+                    };
+                    document.head.appendChild(script);
+                  });
+                }
+                """,
+                {"url": url},
+            )
+        except Exception:
+            return {}
+        if not payload_text:
+            return {}
+        try:
+            payload = json.loads(payload_text)
+            if not isinstance(payload, dict):
+                return {}
+            return self._parse_code_metrics_payload(payload)
+        except Exception:
+            return {}
 
     def _fetch_code_metrics_batch(self, codes: list[str]) -> dict[str, dict[str, str]]:
         clean_codes = [code[-6:] for code in codes if code and len(code) >= 6]
@@ -348,13 +500,22 @@ class ExportService:
         if cookie:
             headers["Cookie"] = cookie
 
-        req = request.Request(url=url, method="GET", headers=headers)
-        try:
-            with self._open_url(req, timeout=15) as resp:
-                raw = self._decode_http_response(resp)
-            batch_metrics = self._parse_code_metrics_text(raw)
-        except Exception:
-            batch_metrics = {}
+        batch_metrics = self._fetch_code_metrics_batch_via_browser(
+            url=url,
+            user_agent=user_agent,
+            accept_language=accept_language,
+        )
+        if not batch_metrics:
+            req = request.Request(url=url, method="GET", headers=headers)
+            try:
+                with self._open_url(req, timeout=15) as resp:
+                    raw = self._decode_http_response(resp)
+                if self._looks_like_access_denied(raw):
+                    batch_metrics = {}
+                else:
+                    batch_metrics = self._parse_code_metrics_text(raw)
+            except Exception:
+                batch_metrics = {}
 
         for code in uncached_codes:
             self.code_metrics_cache[code] = batch_metrics.get(

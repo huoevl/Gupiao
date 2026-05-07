@@ -1,3 +1,4 @@
 openpyxl>=3.1.0
 xmind>=1.2.0
 tkcalendar>=1.6.1
+playwright>=1.53.0
