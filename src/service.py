@@ -246,9 +246,8 @@ class ExportService:
         query_pairs = [(k, v) for k, v in query_pairs if k.lower() != "code"]
         query_pairs.append(("code", ",".join(codes)))
         new_query = urlencode(query_pairs, doseq=True, safe=",")
-        return urlunparse(
-            (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
-        )
+        # 无论模板中出现何种异常前缀，都强制重建为标准 quote.php 地址，避免双前缀问题复现。
+        return urlunparse(("https", "qd.10jqka.com.cn", "/quote.php", "", new_query, ""))
 
     @staticmethod
     def _parse_code_metrics_text(raw: str) -> dict[str, dict[str, str]]:
