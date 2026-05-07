@@ -5,6 +5,8 @@ import os
 import re
 import ssl
 import time
+import gzip
+import zlib
 from urllib import error, request
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -68,6 +70,44 @@ class ExportService:
                 return candidate
 
         return self.fallback_latest_trading_day(today)
+
+    def _is_trading_day(self, date_value: str) -> bool:
+        try:
+            payload = self._fetch_remote_res10(date_value)
+        except Exception:
+            return False
+        data = payload.get("data", [])
+        if not isinstance(data, list):
+            return False
+        return any(
+            isinstance(group, dict) and isinstance(group.get("list"), list) and len(group.get("list", [])) > 0
+            for group in data
+        )
+
+    @staticmethod
+    def _weekday_shift(date_value: str, step: int) -> str:
+        direction = 1 if step > 0 else -1
+        current = datetime.strptime(normalize_date(date_value), "%Y%m%d")
+        while True:
+            current = current + timedelta(days=direction)
+            if current.weekday() < 5:
+                return current.strftime("%Y%m%d")
+
+    def shift_trading_day(self, date_value: str, step: int) -> str:
+        if step == 0:
+            return normalize_date(date_value)
+        direction = 1 if step > 0 else -1
+        start = datetime.strptime(normalize_date(date_value), "%Y%m%d")
+
+        token = self._resolve_token()
+        if not token:
+            return self._weekday_shift(date_value, step)
+
+        for offset in range(1, 31):
+            candidate = (start + timedelta(days=direction * offset)).strftime("%Y%m%d")
+            if self._is_trading_day(candidate):
+                return candidate
+        return self._weekday_shift(date_value, step)
 
     @staticmethod
     def _to_dash_date(date_value: str) -> str:
@@ -171,18 +211,41 @@ class ExportService:
             return default_url, {}
 
         url_match = re.search(r"curl -X GET '([^']+)'", first_line)
-        url = url_match.group(1) if url_match else default_url
+        url = self._sanitize_code_url(url_match.group(1) if url_match else default_url)
         headers: dict[str, str] = {}
         for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", first_line):
             headers[key.strip()] = val.strip()
         return url, headers
 
     @staticmethod
+    def _sanitize_code_url(url: str) -> str:
+        """
+        兼容历史错误 URL：
+        https://qd.10jqka.com.cn/https://qd.10jqka.com.cn/quote.php?...
+        -> https://qd.10jqka.com.cn/quote.php?...
+        """
+        value = (url or "").strip().strip("`").strip("\"").strip("'")
+        if not value:
+            return value
+        quote_idx = value.lower().find("/quote.php")
+        if quote_idx != -1:
+            suffix = value[quote_idx:]
+            if not suffix.startswith("/"):
+                suffix = f"/{suffix}"
+            return f"https://qd.10jqka.com.cn{suffix}"
+        match = re.search(r"https?://qd\.10jqka\.com\.cn/quote\.php\?.*", value, flags=re.IGNORECASE)
+        if match:
+            return match.group(0)
+        return value
+
+    @staticmethod
     def _build_code_request_url(url_template: str, codes: list[str]) -> str:
-        parsed = urlparse(url_template)
-        query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-        query["code"] = ",".join(codes)
-        new_query = urlencode(query)
+        parsed = urlparse(ExportService._sanitize_code_url(url_template))
+        query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+        # 保留原有参数，只替换 code；逗号必须保留为 ","，不能编码成 "%2C"
+        query_pairs = [(k, v) for k, v in query_pairs if k.lower() != "code"]
+        query_pairs.append(("code", ",".join(codes)))
+        new_query = urlencode(query_pairs, doseq=True, safe=",")
         return urlunparse(
             (parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment)
         )
@@ -209,6 +272,33 @@ class ExportService:
             }
         return result
 
+    @staticmethod
+    def _decode_http_response(resp) -> str:
+        raw_bytes = resp.read()
+        content_encoding = str(resp.headers.get("Content-Encoding", "")).lower()
+        if "gzip" in content_encoding:
+            try:
+                raw_bytes = gzip.decompress(raw_bytes)
+            except Exception:
+                pass
+        elif "deflate" in content_encoding:
+            try:
+                raw_bytes = zlib.decompress(raw_bytes)
+            except Exception:
+                pass
+        return raw_bytes.decode("utf-8", errors="ignore")
+
+    @staticmethod
+    def _sanitize_cookie_header(cookie_header: str) -> str:
+        """
+        清理可能导致风控拦截的临时 cookie（如 vvvv=1），其余 cookie 保留。
+        """
+        if not cookie_header:
+            return ""
+        items = [item.strip() for item in cookie_header.split(";") if item.strip()]
+        clean_items = [item for item in items if not item.lower().startswith("vvvv=")]
+        return "; ".join(clean_items)
+
     def _fetch_code_metrics_batch(self, codes: list[str]) -> dict[str, dict[str, str]]:
         clean_codes = [code[-6:] for code in codes if code and len(code) >= 6]
         clean_codes = list(dict.fromkeys(clean_codes))
@@ -219,25 +309,50 @@ class ExportService:
             return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
 
         url = self._build_code_request_url(self.code_url_template, uncached_codes)
-        headers = dict(self.code_headers_template)
-        for key in ["Host", "host", "Connection", "connection", "Content-Length", "content-length"]:
-            headers.pop(key, None)
-        headers.update(
-            {
-                "Accept": headers.get("Accept", "*/*"),
-                "User-Agent": headers.get(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-                ),
-                "Accept-Encoding": "identity",
-                "Referer": headers.get("Referer", "https://stockpage.10jqka.com.cn/"),
-            }
+        # 双保险：无论模板或拼接过程如何，都强制规整到 quote.php 的标准 URL
+        url = self._sanitize_code_url(url)
+        template_headers = dict(self.code_headers_template)
+        lower_headers = {str(k).lower(): str(v) for k, v in template_headers.items()}
+        user_agent = lower_headers.get(
+            "user-agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
         )
+        referer = lower_headers.get("referer", "https://stockpage.10jqka.com.cn/")
+        accept_language = lower_headers.get("accept-language")
+        dnt = lower_headers.get("dnt")
+        sec_ch_ua = lower_headers.get("sec-ch-ua")
+        sec_ch_ua_mobile = lower_headers.get("sec-ch-ua-mobile")
+        sec_ch_ua_platform = lower_headers.get("sec-ch-ua-platform")
+        cookie = self._sanitize_cookie_header(lower_headers.get("cookie", ""))
+
+        # 固定为脚本拉取请求，不继承导航类请求头，避免触发 vvvv=1 拦截页
+        headers = {
+            "User-Agent": user_agent,
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Referer": referer,
+            "Sec-Fetch-Site": "same-site",
+            "Sec-Fetch-Mode": "no-cors",
+            "Sec-Fetch-Dest": "script",
+        }
+        if accept_language:
+            headers["Accept-Language"] = accept_language
+        if dnt:
+            headers["DNT"] = dnt
+        if sec_ch_ua:
+            headers["sec-ch-ua"] = sec_ch_ua
+        if sec_ch_ua_mobile:
+            headers["sec-ch-ua-mobile"] = sec_ch_ua_mobile
+        if sec_ch_ua_platform:
+            headers["sec-ch-ua-platform"] = sec_ch_ua_platform
+        if cookie:
+            headers["Cookie"] = cookie
+
         req = request.Request(url=url, method="GET", headers=headers)
         try:
             with self._open_url(req, timeout=15) as resp:
-                raw = resp.read().decode("utf-8", errors="ignore")
+                raw = self._decode_http_response(resp)
             batch_metrics = self._parse_code_metrics_text(raw)
         except Exception:
             batch_metrics = {}
@@ -250,7 +365,8 @@ class ExportService:
         return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
 
     def _enrich_metrics_from_remote(self, payload: dict, metrics: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
-        codes: set[str] = set()
+        codes: list[str] = []
+        seen_codes: set[str] = set()
         for group in payload.get("data", []):
             stock_list = group.get("list", [])
             if not isinstance(stock_list, list):
@@ -258,7 +374,10 @@ class ExportService:
             for stock in stock_list:
                 raw_code = str(stock.get("code", "")).strip()
                 if len(raw_code) >= 6:
-                    codes.add(raw_code[-6:])
+                    code6 = raw_code[-6:]
+                    if code6 not in seen_codes:
+                        seen_codes.add(code6)
+                        codes.append(code6)
 
         need_fetch: list[str] = []
         for code in codes:

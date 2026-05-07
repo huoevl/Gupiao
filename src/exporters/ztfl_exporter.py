@@ -5,6 +5,7 @@ from src.models import TopicGroup
 
 
 def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: str) -> None:
+    groups = [group for group in groups if group.stocks]
     result: dict[str, object] = {
         "result": date_value,
         "data": {},

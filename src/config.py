@@ -10,8 +10,8 @@ RES10_FILE_TEMPLATE = "res_10_{date}.json"
 RES_CODE_FILE = "res_code.txt"
 
 FEATURE_FORMATS = {
-    "Gpt规则": ["excel", "csv", "json"],
     "涨停归类": ["xmind", "json"],
+    "Gpt规则": ["excel", "csv", "json"],
 }
 
 GPT_EXPORT_COLUMNS = [

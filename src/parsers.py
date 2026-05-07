@@ -150,12 +150,13 @@ def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple
                 )
             )
 
-        topic_groups.append(
-            TopicGroup(
-                name=group_name,
-                reason=reason,
-                stocks=topic_stocks,
+        if topic_stocks:
+            topic_groups.append(
+                TopicGroup(
+                    name=group_name,
+                    reason=reason,
+                    stocks=topic_stocks,
+                )
             )
-        )
 
     return gpt_records, topic_groups

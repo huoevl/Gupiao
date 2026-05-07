@@ -25,7 +25,7 @@ class ExportApp:
         self.remember_var = tk.BooleanVar(value=False)
         self.login_status_var = tk.StringVar(value="未登录（可直接使用本地数据）")
         self.date_var = tk.StringVar()
-        self.feature_var = tk.StringVar(value="Gpt规则")
+        self.feature_var = tk.StringVar(value=list(FEATURE_FORMATS.keys())[0])
         self.format_var = tk.StringVar()
         self._sort_reverse_map: dict[str, bool] = {}
 
@@ -59,8 +59,12 @@ class ExportApp:
         ttk.Label(frame, text="日期：").grid(row=2, column=0, sticky="w", pady=8)
         date_entry = ttk.Entry(frame, textvariable=self.date_var, state="readonly", width=24)
         date_entry.grid(row=2, column=1, sticky="w", pady=8)
-        ttk.Button(frame, text="选择日期", command=self._pick_date).grid(
+        date_entry.bind("<Button-1>", lambda _event: self._pick_date())
+        ttk.Button(frame, text="上一日", command=self._go_prev_trading_day).grid(
             row=2, column=2, sticky="w", padx=8, pady=8
+        )
+        ttk.Button(frame, text="下一日", command=self._go_next_trading_day).grid(
+            row=2, column=3, sticky="w", padx=8, pady=8
         )
 
         ttk.Label(frame, text="导出功能：").grid(row=3, column=0, sticky="w", pady=8)
@@ -116,6 +120,21 @@ class ExportApp:
         table_frame.grid_columnconfigure(0, weight=1)
 
         self._clear_preview("请选择条件后点击“预览”")
+
+    def _go_prev_trading_day(self) -> None:
+        self._shift_trading_day(-1)
+
+    def _go_next_trading_day(self) -> None:
+        self._shift_trading_day(1)
+
+    def _shift_trading_day(self, step: int) -> None:
+        try:
+            current = self.date_var.get().strip()
+            if not current:
+                current = self.service.get_latest_trading_day()
+            self.date_var.set(self.service.shift_trading_day(current, step))
+        except Exception as exc:
+            messagebox.showerror("日期切换失败", str(exc), parent=self.root)
 
     def _login(self) -> None:
         phone = self.phone_var.get().strip()
