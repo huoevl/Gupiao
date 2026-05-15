@@ -54,7 +54,7 @@ def format_one_word(raw_value: str) -> str:
 def normalize_num(raw_value: str) -> str:
     text = str(raw_value).strip()
     if not text:
-        return "一板"
+        return "1板"
     return text
 
 

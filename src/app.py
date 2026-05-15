@@ -28,6 +28,7 @@ class ExportApp:
         self.date_var = tk.StringVar()
         self.feature_var = tk.StringVar(value=list(FEATURE_FORMATS.keys())[0])
         self.format_var = tk.StringVar()
+        self.board_count_var = tk.StringVar(value="0")
         self._sort_reverse_map: dict[str, bool] = {}
         self._date_shift_in_progress = False
 
@@ -81,6 +82,8 @@ class ExportApp:
         )
         feature_box.grid(row=3, column=1, sticky="w", pady=8)
         feature_box.bind("<<ComboboxSelected>>", lambda _event: self._update_format_options())
+        ttk.Label(frame, text="板数：").grid(row=3, column=2, sticky="w", padx=(12, 4), pady=8)
+        ttk.Entry(frame, textvariable=self.board_count_var, width=10).grid(row=3, column=3, sticky="w", pady=8)
 
         ttk.Label(frame, text="导出格式：").grid(row=4, column=0, sticky="w", pady=8)
         self.format_box = ttk.Combobox(
@@ -282,6 +285,16 @@ class ExportApp:
         else:
             self.format_var.set("")
 
+    def _get_board_count(self) -> int:
+        raw_value = self.board_count_var.get().strip() or "0"
+        try:
+            board_count = int(raw_value)
+        except ValueError as exc:
+            raise ValueError("板数必须是大于等于0的整数") from exc
+        if board_count < 0:
+            raise ValueError("板数必须是大于等于0的整数")
+        return board_count
+
     def _clear_preview(self, empty_tip: str = "") -> None:
         for row_id in self.preview_table.get_children():
             self.preview_table.delete(row_id)
@@ -357,13 +370,20 @@ class ExportApp:
             return False
 
         try:
-            columns, rows = self.service.preview(feature, date_value, limit=None)
+            board_count = self._get_board_count()
+            columns, rows = self.service.preview(feature, date_value, limit=None, board_count=board_count)
             self._render_preview(columns, rows)
             return True
         except Exception as exc:
             if self._try_relogin_if_needed(exc):
                 try:
-                    columns, rows = self.service.preview(feature, date_value, limit=None)
+                    board_count = self._get_board_count()
+                    columns, rows = self.service.preview(
+                        feature,
+                        date_value,
+                        limit=None,
+                        board_count=board_count,
+                    )
                     self._render_preview(columns, rows)
                     return True
                 except Exception as retry_exc:
@@ -387,7 +407,8 @@ class ExportApp:
             return
 
         try:
-            output_path = self.service.export(feature, fmt, date_value)
+            board_count = self._get_board_count()
+            output_path = self.service.export(feature, fmt, date_value, board_count=board_count)
         except Exception as exc:
             messagebox.showerror("导出失败", str(exc), parent=self.root)
             return

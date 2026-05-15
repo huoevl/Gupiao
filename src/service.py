@@ -778,11 +778,50 @@ class ExportService:
         metrics = self._enrich_metrics_from_remote(payload, metrics)
         return parse_res10(payload, metrics)
 
-    def preview(self, feature: str, date_value: str, limit: int | None = None) -> tuple[list[str], list[list[str]]]:
+    @staticmethod
+    def _matches_board_count(num_text: str, board_count: int) -> bool:
+        if board_count <= 0:
+            return True
+        return f"{board_count}板" in str(num_text).strip()
+
+    def _filter_records_by_board_count(
+        self,
+        gpt_records,
+        topic_groups,
+        board_count: int,
+    ):
+        if board_count <= 0:
+            return gpt_records, topic_groups
+        filtered_gpt_records = [
+            record for record in gpt_records if self._matches_board_count(record.num, board_count)
+        ]
+        filtered_topic_groups = []
+        for group in topic_groups:
+            filtered_stocks = [
+                stock for stock in group.stocks if self._matches_board_count(stock.num, board_count)
+            ]
+            if filtered_stocks:
+                filtered_topic_groups.append(
+                    type(group)(
+                        name=group.name,
+                        reason=group.reason,
+                        stocks=filtered_stocks,
+                    )
+                )
+        return filtered_gpt_records, filtered_topic_groups
+
+    def preview(
+        self,
+        feature: str,
+        date_value: str,
+        limit: int | None = None,
+        board_count: int = 0,
+    ) -> tuple[list[str], list[list[str]]]:
         if feature not in FEATURE_FORMATS:
             raise ValueError(f"不支持的导出功能: {feature}")
 
         gpt_records, topic_groups = self._load_records(date_value)
+        gpt_records, topic_groups = self._filter_records_by_board_count(gpt_records, topic_groups, board_count)
         if feature == "Gpt规则":
             columns = ["股票名", "股票代码", "连板数", "涨停时间", "成交额", "换手率", "是否一字", "题材"]
             rows: list[list[str]] = []
@@ -821,13 +860,14 @@ class ExportService:
                     return columns, rows
         return columns, rows
 
-    def export(self, feature: str, fmt: str, date_value: str) -> Path:
+    def export(self, feature: str, fmt: str, date_value: str, board_count: int = 0) -> Path:
         if feature not in FEATURE_FORMATS:
             raise ValueError(f"不支持的导出功能: {feature}")
         if fmt not in FEATURE_FORMATS[feature]:
             raise ValueError(f"{feature} 不支持格式: {fmt}")
 
         gpt_records, topic_groups = self._load_records(date_value)
+        gpt_records, topic_groups = self._filter_records_by_board_count(gpt_records, topic_groups, board_count)
 
         normalized_date = normalize_date(date_value)
         file_prefix = "gpt" if feature == "Gpt规则" else "ztfl"
