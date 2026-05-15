@@ -74,7 +74,8 @@ def export_xmind(groups: list[TopicGroup], output_path: Path, date_value: str) -
                 _new_topic("", title_unedited=True),
             ]
             expound_topic = _new_topic(stock.expound or "", expound_children, custom_width=888)
-            line2 = _new_topic(f"{stock.code} - {stock.num}".strip(" -"))
+            line2_parts = [stock.code, stock.num, stock.is_one_word]
+            line2 = _new_topic(" - ".join(part for part in line2_parts if part))
             stock_children = [
                 expound_topic,
                 line2,

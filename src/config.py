@@ -21,5 +21,6 @@ GPT_EXPORT_COLUMNS = [
     ("涨停时间", "limit_up_time"),
     ("成交额", "turnover"),
     ("换手率", "turnover_rate"),
+    ("是否一字", "is_one_word"),
     ("题材", "theme"),
 ]

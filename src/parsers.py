@@ -40,6 +40,17 @@ def format_percent(raw_value: str) -> str:
     return f"{_trim_decimal(value)}%"
 
 
+def format_one_word(raw_value: str) -> str:
+    text = str(raw_value).strip()
+    if not text:
+        return ""
+    try:
+        value = float(text.replace(",", ""))
+    except ValueError:
+        return ""
+    return "一字板" if value <= 0.1 else "非一字"
+
+
 def normalize_date(raw_date: str) -> str:
     value = raw_date.strip()
     for fmt in ("%Y-%m-%d", "%Y%m%d"):
@@ -93,16 +104,21 @@ def parse_res_code_file(file_path: Path) -> dict[str, dict[str, str]]:
         result[str(code)] = {
             "turnover": format_compact_amount(metrics.get("19", "")),
             "turnover_rate": format_percent(metrics.get("1968584", "")),
+            "is_one_word": format_one_word(metrics.get("526792", "")),
         }
     return result
 
 
 def _extract_stock_metrics(
     code: str, code_metrics: dict[str, dict[str, str]]
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     key = code[-6:]
     metrics = code_metrics.get(key, {})
-    return metrics.get("turnover", ""), metrics.get("turnover_rate", "")
+    return (
+        metrics.get("turnover", ""),
+        metrics.get("turnover_rate", ""),
+        metrics.get("is_one_word", ""),
+    )
 
 
 def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple[list[GptRecord], list[TopicGroup]]:
@@ -127,13 +143,14 @@ def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple
             num = str(action_info.get("num") or "")
             time = str(action_info.get("time") or "")
             expound = str(action_info.get("expound") or "")
-            turnover, turnover_rate = _extract_stock_metrics(code, code_metrics)
+            turnover, turnover_rate, is_one_word = _extract_stock_metrics(code, code_metrics)
 
             topic_stocks.append(
                 TopicStock(
                     name=stock_name,
                     code=code,
                     num=num,
+                    is_one_word=is_one_word,
                     expound=expound,
                 )
             )
@@ -146,6 +163,7 @@ def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple
                     limit_up_time=time,
                     turnover=turnover,
                     turnover_rate=turnover_rate,
+                    is_one_word=is_one_word,
                     theme=group_name,
                 )
             )

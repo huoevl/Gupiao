@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 from pathlib import Path
+import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
 import unicodedata
@@ -28,6 +29,7 @@ class ExportApp:
         self.feature_var = tk.StringVar(value=list(FEATURE_FORMATS.keys())[0])
         self.format_var = tk.StringVar()
         self._sort_reverse_map: dict[str, bool] = {}
+        self._date_shift_in_progress = False
 
         self._load_app_state()
         self._init_default_date()
@@ -60,10 +62,12 @@ class ExportApp:
         date_entry = ttk.Entry(frame, textvariable=self.date_var, state="readonly", width=24)
         date_entry.grid(row=2, column=1, sticky="w", pady=8)
         date_entry.bind("<Button-1>", lambda _event: self._pick_date())
-        ttk.Button(frame, text="上一日", command=self._go_prev_trading_day).grid(
+        self.prev_day_button = ttk.Button(frame, text="上一日", command=self._go_prev_trading_day)
+        self.prev_day_button.grid(
             row=2, column=2, sticky="w", padx=8, pady=8
         )
-        ttk.Button(frame, text="下一日", command=self._go_next_trading_day).grid(
+        self.next_day_button = ttk.Button(frame, text="下一日", command=self._go_next_trading_day)
+        self.next_day_button.grid(
             row=2, column=3, sticky="w", padx=8, pady=8
         )
 
@@ -128,13 +132,34 @@ class ExportApp:
         self._shift_trading_day(1)
 
     def _shift_trading_day(self, step: int) -> None:
-        try:
-            current = self.date_var.get().strip()
-            if not current:
-                current = self.service.get_latest_trading_day()
-            self.date_var.set(self.service.shift_trading_day(current, step))
-        except Exception as exc:
-            messagebox.showerror("日期切换失败", str(exc), parent=self.root)
+        if self._date_shift_in_progress:
+            return
+        self._date_shift_in_progress = True
+        current = self.date_var.get().strip()
+        self._set_date_button_state("disabled")
+
+        def worker() -> None:
+            try:
+                selected = current or self.service.get_latest_trading_day()
+                next_date = self.service.shift_trading_day(selected, step)
+                self.root.after(0, lambda: self._finish_shift_trading_day(next_date=next_date, error=None))
+            except Exception as exc:
+                self.root.after(0, lambda: self._finish_shift_trading_day(next_date=None, error=exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_shift_trading_day(self, next_date: str | None, error: Exception | None) -> None:
+        self._date_shift_in_progress = False
+        self._set_date_button_state("normal")
+        if error is not None:
+            messagebox.showerror("日期切换失败", str(error), parent=self.root)
+            return
+        if next_date:
+            self.date_var.set(next_date)
+
+    def _set_date_button_state(self, state: str) -> None:
+        self.prev_day_button.config(state=state)
+        self.next_day_button.config(state=state)
 
     def _login(self) -> None:
         phone = self.phone_var.get().strip()

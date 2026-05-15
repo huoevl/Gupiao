@@ -14,7 +14,7 @@ from src.config import DOC_DIR, FEATURE_FORMATS, OUT_DIR
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
 from src.exporters.ztfl_exporter import export_topic_json
-from src.parsers import format_compact_amount, format_percent, normalize_date, parse_res10
+from src.parsers import format_compact_amount, format_one_word, format_percent, normalize_date, parse_res10
 
 
 class ExportService:
@@ -28,6 +28,7 @@ class ExportService:
         self.code_url_template, self.code_headers_template = self._load_code_request_template()
         self.code_metrics_cache: dict[str, dict[str, str]] = {}
         self._latest_trading_day_cache: str | None = None
+        self._trading_day_status_cache: dict[str, bool] = {}
         self._browser_playwright = None
         self._code_browser = None
         self._code_browser_context = None
@@ -59,35 +60,37 @@ class ExportService:
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         for offset in range(0, 20):
             candidate = (today - timedelta(days=offset)).strftime("%Y%m%d")
-            try:
-                payload = self._fetch_remote_res10(candidate)
-            except Exception:
-                continue
-            data = payload.get("data", [])
-            if not isinstance(data, list):
-                continue
-            has_stocks = any(
-                isinstance(group, dict) and isinstance(group.get("list"), list) and len(group.get("list", [])) > 0
-                for group in data
-            )
-            if has_stocks:
+            status = self._get_remote_trading_day_status(candidate)
+            if status is None:
+                break
+            if status:
                 self._latest_trading_day_cache = candidate
                 return candidate
 
         return self.fallback_latest_trading_day(today)
 
     def _is_trading_day(self, date_value: str) -> bool:
+        status = self._get_remote_trading_day_status(date_value)
+        return bool(status)
+
+    def _get_remote_trading_day_status(self, date_value: str) -> bool | None:
+        normalized = normalize_date(date_value)
+        if normalized in self._trading_day_status_cache:
+            return self._trading_day_status_cache[normalized]
         try:
-            payload = self._fetch_remote_res10(date_value)
+            payload = self._fetch_remote_res10(normalized)
         except Exception:
-            return False
+            return None
         data = payload.get("data", [])
         if not isinstance(data, list):
+            self._trading_day_status_cache[normalized] = False
             return False
-        return any(
+        result = any(
             isinstance(group, dict) and isinstance(group.get("list"), list) and len(group.get("list", [])) > 0
             for group in data
         )
+        self._trading_day_status_cache[normalized] = result
+        return result
 
     @staticmethod
     def _weekday_shift(date_value: str, step: int) -> str:
@@ -110,7 +113,10 @@ class ExportService:
 
         for offset in range(1, 31):
             candidate = (start + timedelta(days=direction * offset)).strftime("%Y%m%d")
-            if self._is_trading_day(candidate):
+            status = self._get_remote_trading_day_status(candidate)
+            if status is None:
+                return self._weekday_shift(date_value, step)
+            if status:
                 return candidate
         return self._weekday_shift(date_value, step)
 
@@ -306,6 +312,7 @@ class ExportService:
             result[code_key] = {
                 "turnover": format_compact_amount(metrics.get("19", "")),
                 "turnover_rate": format_percent(metrics.get("1968584", "")),
+                "is_one_word": format_one_word(metrics.get("526792", "")),
             }
         return result
 
@@ -520,7 +527,7 @@ class ExportService:
         for code in uncached_codes:
             self.code_metrics_cache[code] = batch_metrics.get(
                 code,
-                {"turnover": "", "turnover_rate": ""},
+                {"turnover": "", "turnover_rate": "", "is_one_word": ""},
             )
         return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
 
@@ -542,7 +549,7 @@ class ExportService:
         need_fetch: list[str] = []
         for code in codes:
             existed = metrics.get(code, {})
-            if existed.get("turnover") and existed.get("turnover_rate"):
+            if existed.get("turnover") and existed.get("turnover_rate") and existed.get("is_one_word"):
                 continue
             need_fetch.append(code)
 
@@ -634,7 +641,7 @@ class ExportService:
         )
         try:
             with self._open_url(req, timeout=20) as resp:
-                raw = resp.read().decode("utf-8")
+                raw = self._decode_http_response(resp)
         except error.HTTPError as exc:
             raise RuntimeError(f"登录失败(HTTP {exc.code})") from exc
         except error.URLError as exc:
@@ -714,7 +721,7 @@ class ExportService:
         )
         try:
             with self._open_url(req, timeout=20) as resp:
-                raw = resp.read().decode("utf-8")
+                raw = self._decode_http_response(resp)
         except error.HTTPError as exc:
             raise RuntimeError(f"接口请求失败(HTTP {exc.code})，请检查 token 是否有效") from exc
         except error.URLError as exc:
@@ -746,7 +753,7 @@ class ExportService:
                 )
                 try:
                     with self._open_url(retry_req, timeout=20) as resp:
-                        retry_raw = resp.read().decode("utf-8")
+                        retry_raw = self._decode_http_response(resp)
                     retry_result = json.loads(retry_raw)
                     if (
                         isinstance(retry_result, dict)
@@ -777,7 +784,7 @@ class ExportService:
 
         gpt_records, topic_groups = self._load_records(date_value)
         if feature == "Gpt规则":
-            columns = ["股票名", "股票代码", "连板数", "涨停时间", "成交额", "换手率", "题材"]
+            columns = ["股票名", "股票代码", "连板数", "涨停时间", "成交额", "换手率", "是否一字", "题材"]
             rows: list[list[str]] = []
             for record in gpt_records:
                 rows.append(
@@ -788,6 +795,7 @@ class ExportService:
                         record.limit_up_time,
                         record.turnover,
                         record.turnover_rate,
+                        record.is_one_word,
                         record.theme,
                     ]
                 )
@@ -795,7 +803,7 @@ class ExportService:
                     break
             return columns, rows
 
-        columns = ["分类", "股票名", "股票代码", "连板数", "个股原因"]
+        columns = ["分类", "股票名", "股票代码", "连板数", "是否一字", "个股原因"]
         rows = []
         for group in topic_groups:
             for stock in group.stocks:
@@ -805,6 +813,7 @@ class ExportService:
                         stock.name,
                         stock.code,
                         stock.num,
+                        stock.is_one_word,
                         (stock.expound or "").replace("\n", " "),
                     ]
                 )

@@ -18,6 +18,7 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
             stocks[stock.name] = {
                 "num": stock.num,
                 "code": stock.code,
+                "is_one_word": stock.is_one_word,
                 "expound": stock.expound or "",
             }
         data[group.name] = {

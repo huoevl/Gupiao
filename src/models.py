@@ -9,6 +9,7 @@ class GptRecord:
     limit_up_time: str
     turnover: str
     turnover_rate: str
+    is_one_word: str
     theme: str
 
 
@@ -17,6 +18,7 @@ class TopicStock:
     name: str
     code: str
     num: str
+    is_one_word: str
     expound: str
 
 
