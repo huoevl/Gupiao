@@ -58,12 +58,43 @@ def _new_topic(
     return topic
 
 
+def _build_overview_stock_title(stock) -> str:
+    parts = [stock.name, stock.code, stock.num, stock.is_one_word]
+    return "：".join(part for part in parts if part)
+
+
 def export_xmind(groups: list[TopicGroup], output_path: Path, date_value: str) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     style_template = _load_style_template()
     groups = [group for group in groups if group.stocks]
 
     sheets: list[dict] = []
+    total_stock_count = sum(len(group.stocks) for group in groups)
+    overview_children: list[dict] = []
+    for group in groups:
+        group_stock_topics = [_new_topic(_build_overview_stock_title(stock)) for stock in group.stocks]
+        overview_children.append(_new_topic(group.name, group_stock_topics))
+
+    overview_root_topic_id = str(uuid4())
+    overview_root_topic = {
+        "id": overview_root_topic_id,
+        "class": "topic",
+        "title": "总览",
+        "structureClass": "org.xmind.ui.logic.right",
+        "children": {"attached": overview_children},
+    }
+    sheets.append(
+        {
+            "id": str(uuid4()),
+            "revisionId": str(uuid4()),
+            "class": "sheet",
+            "title": f"总览.{total_stock_count}",
+            "rootTopic": overview_root_topic,
+            "arrangeableLayerOrder": [overview_root_topic_id],
+            **style_template,
+        }
+    )
+
     for group in groups:
         tab_title = f"{group.name}.{len(group.stocks)}"
 

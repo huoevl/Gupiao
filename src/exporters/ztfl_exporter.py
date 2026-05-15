@@ -8,12 +8,15 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
     groups = [group for group in groups if group.stocks]
     result: dict[str, object] = {
         "result": date_value,
+        "总览": {},
         "data": {},
     }
 
     data: dict[str, object] = {}
+    overview_data: dict[str, object] = {}
     for group in groups:
         stocks: dict[str, dict[str, str]] = {}
+        overview_stocks: dict[str, dict[str, str]] = {}
         for stock in group.stocks:
             stocks[stock.name] = {
                 "num": stock.num,
@@ -21,10 +24,17 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
                 "is_one_word": stock.is_one_word,
                 "expound": stock.expound or "",
             }
+            overview_stocks[stock.name] = {
+                "代码": stock.code,
+                "连板数": stock.num,
+                "是否一字": stock.is_one_word,
+            }
         data[group.name] = {
             "reason": group.reason,
             **stocks,
         }
+        overview_data[group.name] = overview_stocks
+    result["总览"] = overview_data
     result["data"] = data
 
     with output_path.open("w", encoding="utf-8") as f:
