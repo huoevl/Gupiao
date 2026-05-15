@@ -16,7 +16,9 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
     overview_data: dict[str, object] = {}
     for group in groups:
         stocks: dict[str, dict[str, str]] = {}
-        overview_stocks: dict[str, dict[str, str]] = {}
+        overview_group: dict[str, object] = {
+            "reason": group.reason or "",
+        }
         for stock in group.stocks:
             stocks[stock.name] = {
                 "num": stock.num,
@@ -24,7 +26,7 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
                 "is_one_word": stock.is_one_word,
                 "expound": stock.expound or "",
             }
-            overview_stocks[stock.name] = {
+            overview_group[stock.name] = {
                 "代码": stock.code,
                 "连板数": stock.num,
                 "是否一字": stock.is_one_word,
@@ -33,7 +35,7 @@ def export_topic_json(groups: list[TopicGroup], output_path: Path, date_value: s
             "reason": group.reason,
             **stocks,
         }
-        overview_data[group.name] = overview_stocks
+        overview_data[group.name] = overview_group
     result["总览"] = overview_data
     result["data"] = data
 

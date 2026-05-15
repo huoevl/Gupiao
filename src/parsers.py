@@ -51,6 +51,13 @@ def format_one_word(raw_value: str) -> str:
     return "一字板" if value <= 0.1 else "非一字"
 
 
+def normalize_num(raw_value: str) -> str:
+    text = str(raw_value).strip()
+    if not text:
+        return "一板"
+    return text
+
+
 def normalize_date(raw_date: str) -> str:
     value = raw_date.strip()
     for fmt in ("%Y-%m-%d", "%Y%m%d"):
@@ -140,7 +147,7 @@ def parse_res10(payload: dict, code_metrics: dict[str, dict[str, str]]) -> tuple
                 stock.get("article", {})
                 .get("action_info", {})
             )
-            num = str(action_info.get("num") or "")
+            num = normalize_num(action_info.get("num") or "")
             time = str(action_info.get("time") or "")
             expound = str(action_info.get("expound") or "")
             turnover, turnover_rate, is_one_word = _extract_stock_metrics(code, code_metrics)

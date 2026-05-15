@@ -59,8 +59,14 @@ def _new_topic(
 
 
 def _build_overview_stock_title(stock) -> str:
-    parts = [stock.name, stock.code, stock.num, stock.is_one_word]
-    return "：".join(part for part in parts if part)
+    return stock.name
+
+
+def _build_stock_info_children(stock) -> list[dict]:
+    one_word_topic = _new_topic(stock.is_one_word or "")
+    num_topic = _new_topic(stock.num or "", [one_word_topic])
+    code_topic = _new_topic(stock.code or "", [num_topic])
+    return [code_topic]
 
 
 def export_xmind(groups: list[TopicGroup], output_path: Path, date_value: str) -> None:
@@ -72,7 +78,11 @@ def export_xmind(groups: list[TopicGroup], output_path: Path, date_value: str) -
     total_stock_count = sum(len(group.stocks) for group in groups)
     overview_children: list[dict] = []
     for group in groups:
-        group_stock_topics = [_new_topic(_build_overview_stock_title(stock)) for stock in group.stocks]
+        group_stock_topics = [_new_topic(group.reason or "", custom_width=1000)]
+        group_stock_topics.extend(
+            _new_topic(_build_overview_stock_title(stock), _build_stock_info_children(stock))
+            for stock in group.stocks
+        )
         overview_children.append(_new_topic(group.name, group_stock_topics))
 
     overview_root_topic_id = str(uuid4())
@@ -105,11 +115,9 @@ def export_xmind(groups: list[TopicGroup], output_path: Path, date_value: str) -
                 _new_topic("", title_unedited=True),
             ]
             expound_topic = _new_topic(stock.expound or "", expound_children, custom_width=888)
-            line2_parts = [stock.code, stock.num, stock.is_one_word]
-            line2 = _new_topic(" - ".join(part for part in line2_parts if part))
             stock_children = [
                 expound_topic,
-                line2,
+                *_build_stock_info_children(stock),
             ]
             stock_topics.append(_new_topic(stock.name, stock_children))
 
