@@ -14,6 +14,7 @@ from src.config import DOC_DIR, FEATURE_FORMATS, OUT_DIR
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
 from src.exporters.ztfl_exporter import export_topic_json
+from src.models import TopicGroup
 from src.parsers import format_compact_amount, format_one_word, format_percent, normalize_date, parse_res10
 
 
@@ -810,6 +811,51 @@ class ExportService:
                 )
         return filtered_gpt_records, filtered_topic_groups
 
+    @staticmethod
+    def _normalize_stock_code_key(code: str) -> str:
+        text = str(code).strip()
+        return text[-6:] if len(text) >= 6 else text
+
+    @staticmethod
+    def _filter_topic_groups_by_codes(topic_groups: list[TopicGroup], codes: set[str]) -> list[TopicGroup]:
+        if not codes:
+            return []
+        normalized_codes = {ExportService._normalize_stock_code_key(code) for code in codes if code}
+        filtered_groups: list[TopicGroup] = []
+        for group in topic_groups:
+            filtered_stocks = [
+                stock
+                for stock in group.stocks
+                if ExportService._normalize_stock_code_key(stock.code) in normalized_codes
+            ]
+            if filtered_stocks:
+                filtered_groups.append(
+                    TopicGroup(
+                        name=group.name,
+                        reason=group.reason,
+                        stocks=filtered_stocks,
+                    )
+                )
+        return filtered_groups
+
+    @staticmethod
+    def _append_suffix_to_path(output_path: Path, suffix: str) -> Path:
+        return output_path.with_name(f"{output_path.stem}_{suffix}{output_path.suffix}")
+
+    def _export_topic_groups_with_format(
+        self,
+        topic_groups: list[TopicGroup],
+        fmt: str,
+        output_path: Path,
+        normalized_date: str,
+    ) -> None:
+        if fmt == "xmind":
+            export_xmind(topic_groups, output_path, normalized_date)
+        elif fmt == "json":
+            export_topic_json(topic_groups, output_path, normalized_date)
+        else:
+            raise ValueError("涨停归类只支持 xmind/json 格式")
+
     def preview(
         self,
         feature: str,
@@ -860,7 +906,7 @@ class ExportService:
                     return columns, rows
         return columns, rows
 
-    def export(self, feature: str, fmt: str, date_value: str, board_count: int = 0) -> Path:
+    def export(self, feature: str, fmt: str, date_value: str, board_count: int = 0) -> Path | list[Path]:
         if feature not in FEATURE_FORMATS:
             raise ValueError(f"不支持的导出功能: {feature}")
         if fmt not in FEATURE_FORMATS[feature]:
@@ -883,12 +929,32 @@ class ExportService:
                 export_excel(gpt_records, output_path)
             else:
                 raise ValueError(f"不支持的格式: {fmt}")
-        else:
-            if fmt == "xmind":
-                export_xmind(topic_groups, output_path, normalized_date)
-            elif fmt == "json":
-                export_topic_json(topic_groups, output_path, normalized_date)
-            else:
-                raise ValueError("涨停归类只支持 xmind/json 格式")
+            return output_path
 
+        if board_count >= 2 and fmt in {"xmind", "json"}:
+            output_paths: list[Path] = []
+            current_output_path = self._append_suffix_to_path(output_path, str(board_count))
+            self._export_topic_groups_with_format(topic_groups, fmt, current_output_path, normalized_date)
+            output_paths.append(current_output_path)
+
+            tracked_codes = {
+                self._normalize_stock_code_key(stock.code)
+                for group in topic_groups
+                for stock in group.stocks
+                if stock.code
+            }
+            history_date = normalized_date
+            for previous_board in range(board_count - 1, 0, -1):
+                history_date = self.shift_trading_day(history_date, -1)
+                _, history_topic_groups = self._load_records(history_date)
+                history_topic_groups = self._filter_topic_groups_by_codes(history_topic_groups, tracked_codes)
+                history_output_path = self._append_suffix_to_path(
+                    output_path,
+                    f"{board_count}_{previous_board}",
+                )
+                self._export_topic_groups_with_format(history_topic_groups, fmt, history_output_path, history_date)
+                output_paths.append(history_output_path)
+            return output_paths
+
+        self._export_topic_groups_with_format(topic_groups, fmt, output_path, normalized_date)
         return output_path

@@ -408,12 +408,16 @@ class ExportApp:
 
         try:
             board_count = self._get_board_count()
-            output_path = self.service.export(feature, fmt, date_value, board_count=board_count)
+            output_result = self.service.export(feature, fmt, date_value, board_count=board_count)
         except Exception as exc:
             messagebox.showerror("导出失败", str(exc), parent=self.root)
             return
 
-        messagebox.showinfo("导出成功", f"文件已生成：\n{output_path}", parent=self.root)
+        if isinstance(output_result, list):
+            output_text = "\n".join(str(path) for path in output_result)
+        else:
+            output_text = str(output_result)
+        messagebox.showinfo("导出成功", f"文件已生成：\n{output_text}", parent=self.root)
 
     def _try_relogin_if_needed(self, exc: Exception) -> bool:
         text = str(exc)
