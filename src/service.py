@@ -11,7 +11,18 @@ import zlib
 from urllib import error, request
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from src.config import DOC_DIR, FEATURE_FORMATS, JYG_LOGIN_HEADERS, JYG_LOGIN_URL, JYG_TOKEN_SALT, OUT_DIR
+from src.config import (
+    DOC_DIR,
+    FEATURE_FORMATS,
+    JYG_ACTION_FIELD_HEADERS,
+    JYG_ACTION_FIELD_URL,
+    JYG_LOGIN_HEADERS,
+    JYG_LOGIN_URL,
+    JYG_TOKEN_SALT,
+    OUT_DIR,
+    THS_CODE_HEADERS,
+    THS_CODE_URL_TEMPLATE,
+)
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
 from src.exporters.ztfl_exporter import export_topic_json
@@ -25,9 +36,6 @@ class ExportService:
         self.out_dir = out_dir
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self.session_token = os.getenv("JYG_TOKEN", "").strip()
-        self.login_url, self.login_headers_template = self._load_login_request_template()
-        self.action_field_url, self.action_field_headers_template = self._load_action_field_request_template()
-        self.code_url_template, self.code_headers_template = self._load_code_request_template()
         self.code_metrics_cache: dict[str, dict[str, str]] = {}
         self._latest_trading_day_cache: str | None = None
         self._trading_day_status_cache: dict[str, bool] = {}
@@ -134,130 +142,6 @@ class ExportService:
 
     def set_session_token(self, token: str) -> None:
         self.session_token = token.strip()
-
-    def _load_login_request_template(self) -> tuple[str, dict[str, str]]:
-        req_file = self.doc_dir / "req_acc.txt"
-        default_url = "https://app.jiuyangongshe.com/jystock-app/api/v1/user/login"
-        if not req_file.exists():
-            return default_url, {}
-
-        text = req_file.read_text(encoding="utf-8")
-        # 取最后一条 curl -X POST 行（最新抓包），而非第一条
-        target_line = ""
-        for line in text.splitlines():
-            value = line.strip()
-            if value.startswith("curl -X POST"):
-                target_line = value
-        if not target_line:
-            return default_url, {}
-
-        url_match = re.search(r"curl -X POST '([^']+)'", target_line)
-        url = url_match.group(1) if url_match else default_url
-
-        headers: dict[str, str] = {}
-        for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", target_line):
-            headers[key.strip()] = val.strip()
-        return url, headers
-
-    def _load_action_field_request_template(self) -> tuple[str, dict[str, str]]:
-        req_file = self.doc_dir / "req_10.txt"
-        default_url = "https://app.jiuyangongshe.com/jystock-app/api/v1/action/field"
-        if not req_file.exists():
-            return default_url, {}
-
-        text = req_file.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        start_indices: list[int] = []
-        for i, line in enumerate(lines):
-            value = line.strip()
-            if (
-                value.startswith("POST /jystock-app/api/v1/action/field")
-                or value.startswith("POST https://app.jiuyangongshe.com/jystock-app/api/v1/action/field")
-            ):
-                start_indices.append(i)
-        if not start_indices:
-            return default_url, {}
-        # 优先使用文件里最后一段最新抓包
-        start_index = start_indices[-1]
-
-        request_line = lines[start_index].strip()
-        host = "app.jiuyangongshe.com"
-        headers: dict[str, str] = {}
-        for line in lines[start_index + 1 :]:
-            value = line.strip()
-            if not value:
-                break
-            if ":" not in value:
-                continue
-            key, val = value.split(":", 1)
-            key = key.strip()
-            val = val.strip()
-            headers[key] = val
-            if key.lower() == "host" and val:
-                host = val
-
-        target_match = re.match(r"POST\s+(\S+)\s+HTTP/1\.1", request_line, flags=re.IGNORECASE)
-        target = target_match.group(1) if target_match else "/jystock-app/api/v1/action/field"
-        if target.lower().startswith("http://") or target.lower().startswith("https://"):
-            url = target
-        else:
-            url = f"https://{host}{target}"
-        return url, headers
-
-    def _load_code_request_template(self) -> tuple[str, dict[str, str]]:
-        req_file = self.doc_dir / "req_code.txt"
-        default_url = (
-            "https://qd.10jqka.com.cn/quote.php?"
-            "cate=real&type=stock&return=json&callback=showStockData&code=300069"
-        )
-        if not req_file.exists():
-            return default_url, {}
-
-        text = req_file.read_text(encoding="utf-8")
-
-        fetch_template = self._parse_fetch_request_template(text)
-        if fetch_template:
-            return fetch_template
-
-        first_line = ""
-        for line in text.splitlines():
-            value = line.strip()
-            if value.startswith("curl -X GET"):
-                first_line = value
-                break
-        if not first_line:
-            return default_url, {}
-
-        url_match = re.search(r"curl -X GET '([^']+)'", first_line)
-        url = self._sanitize_code_url(url_match.group(1) if url_match else default_url)
-        headers: dict[str, str] = {}
-        for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", first_line):
-            headers[key.strip()] = val.strip()
-        return url, headers
-
-    def _parse_fetch_request_template(self, text: str) -> tuple[str, dict[str, str]] | None:
-        match = re.search(
-            r"fetch\(\s*(['\"])(.*?)\1\s*,\s*(\{[\s\S]*?\})\s*\)\s*;?",
-            text,
-            flags=re.IGNORECASE,
-        )
-        if not match:
-            return None
-
-        url = self._sanitize_code_url(match.group(2))
-        options_text = match.group(3)
-        try:
-            options = json.loads(options_text)
-        except json.JSONDecodeError:
-            return None
-        if not isinstance(options, dict):
-            return None
-
-        raw_headers = options.get("headers", {})
-        if not isinstance(raw_headers, dict):
-            raw_headers = {}
-        headers = {str(key).strip(): str(val).strip() for key, val in raw_headers.items()}
-        return url, headers
 
     @staticmethod
     def _sanitize_code_url(url: str) -> str:
@@ -468,46 +352,14 @@ class ExportService:
         if not uncached_codes:
             return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
 
-        url = self._build_code_request_url(self.code_url_template, uncached_codes)
-        # 双保险：无论模板或拼接过程如何，都强制规整到 quote.php 的标准 URL
+        # 使用 config.py 配置构建 URL
+        url = THS_CODE_URL_TEMPLATE.replace("{codes}", ",".join(uncached_codes))
         url = self._sanitize_code_url(url)
-        template_headers = dict(self.code_headers_template)
-        lower_headers = {str(k).lower(): str(v) for k, v in template_headers.items()}
-        user_agent = lower_headers.get(
-            "user-agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-        )
-        referer = lower_headers.get("referer", "https://stockpage.10jqka.com.cn/")
-        accept_language = lower_headers.get("accept-language")
-        dnt = lower_headers.get("dnt")
-        sec_ch_ua = lower_headers.get("sec-ch-ua")
-        sec_ch_ua_mobile = lower_headers.get("sec-ch-ua-mobile")
-        sec_ch_ua_platform = lower_headers.get("sec-ch-ua-platform")
-        cookie = self._sanitize_cookie_header(lower_headers.get("cookie", ""))
-
-        # 固定为脚本拉取请求，不继承导航类请求头，避免触发 vvvv=1 拦截页
-        headers = {
-            "User-Agent": user_agent,
-            "Accept": "*/*",
-            "Accept-Encoding": "gzip, deflate, br, zstd",
-            "Referer": referer,
-            "Sec-Fetch-Site": "same-site",
-            "Sec-Fetch-Mode": "no-cors",
-            "Sec-Fetch-Dest": "script",
-        }
-        if accept_language:
-            headers["Accept-Language"] = accept_language
-        if dnt:
-            headers["DNT"] = dnt
-        if sec_ch_ua:
-            headers["sec-ch-ua"] = sec_ch_ua
-        if sec_ch_ua_mobile:
-            headers["sec-ch-ua-mobile"] = sec_ch_ua_mobile
-        if sec_ch_ua_platform:
-            headers["sec-ch-ua-platform"] = sec_ch_ua_platform
-        if cookie:
-            headers["Cookie"] = cookie
+        
+        # 使用 config.py 配置的请求头
+        headers = dict(THS_CODE_HEADERS)
+        user_agent = headers.get("User-Agent", "")
+        accept_language = headers.get("Accept-Language", "")
 
         batch_metrics = self._fetch_code_metrics_batch_via_browser(
             url=url,
@@ -676,40 +528,19 @@ class ExportService:
             "pc": 1,
         }
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        headers = dict(self.action_field_headers_template)
-        # 这些头由 HTTP 客户端自动维护，使用抓包中的固定值会导致请求体长度不一致等问题
-        for key in ["Content-Length", "content-length", "Host", "host", "Connection", "connection"]:
-            headers.pop(key, None)
-        if "Cookie" in headers or "cookie" in headers:
-            raw_cookie = headers.get("Cookie", headers.get("cookie", ""))
-            headers["Cookie"] = self._inject_session_cookie(raw_cookie, token)
-            headers.pop("cookie", None)
-        else:
-            headers["Cookie"] = f"SESSION={token}"
+        # 使用 config.py 配置的请求头
+        headers = dict(JYG_ACTION_FIELD_HEADERS)
+        headers["Cookie"] = f"SESSION={token}"
 
-        # 动态生成 timestamp 和 token 头（与登录接口保持一致）
+        # 动态生成 timestamp 和 token 头
         timestamp = str(int(time.time() * 1000))
         token_str = f"{JYG_TOKEN_SALT}:{timestamp}"
         token_header = hashlib.md5(token_str.encode()).hexdigest()
+        headers["Timestamp"] = timestamp
+        headers["Token"] = token_header
 
-        headers.update(
-            {
-                "Accept": headers.get("Accept", "application/json, text/plain, */*"),
-                "Content-Type": "application/json",
-                "Platform": headers.get("Platform", headers.get("platform", "3")),
-                "Timestamp": timestamp,
-                "Token": token_header,
-                "User-Agent": headers.get(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-                ),
-                "Origin": headers.get("Origin", "https://www.jiuyangongshe.com"),
-                "Referer": headers.get("Referer", "https://www.jiuyangongshe.com/"),
-            }
-        )
         req = request.Request(
-            url=self.action_field_url,
+            url=JYG_ACTION_FIELD_URL,
             data=body,
             method="POST",
             headers=headers,
@@ -741,7 +572,7 @@ class ExportService:
                 retry_headers.pop("Token", None)
                 retry_headers.pop("token", None)
                 retry_req = request.Request(
-                    url=self.action_field_url,
+                    url=JYG_ACTION_FIELD_URL,
                     data=body,
                     method="POST",
                     headers=retry_headers,
