@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime, timedelta
+import hashlib
 import json
 import os
 import re
@@ -10,7 +11,7 @@ import zlib
 from urllib import error, request
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from src.config import DOC_DIR, FEATURE_FORMATS, OUT_DIR
+from src.config import DOC_DIR, FEATURE_FORMATS, JYG_LOGIN_HEADERS, JYG_LOGIN_URL, JYG_TOKEN_SALT, OUT_DIR
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
 from src.exporters.ztfl_exporter import export_topic_json
@@ -141,20 +142,20 @@ class ExportService:
             return default_url, {}
 
         text = req_file.read_text(encoding="utf-8")
-        first_line = ""
+        # 取最后一条 curl -X POST 行（最新抓包），而非第一条
+        target_line = ""
         for line in text.splitlines():
             value = line.strip()
             if value.startswith("curl -X POST"):
-                first_line = value
-                break
-        if not first_line:
+                target_line = value
+        if not target_line:
             return default_url, {}
 
-        url_match = re.search(r"curl -X POST '([^']+)'", first_line)
+        url_match = re.search(r"curl -X POST '([^']+)'", target_line)
         url = url_match.group(1) if url_match else default_url
 
         headers: dict[str, str] = {}
-        for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", first_line):
+        for key, val in re.findall(r"-H '([^:]+):\s*([^']*)'", target_line):
             headers[key.strip()] = val.strip()
         return url, headers
 
@@ -617,25 +618,16 @@ class ExportService:
         }
         body = json.dumps(payload).encode("utf-8")
 
-        headers = dict(self.login_headers_template)
-        headers.update(
-            {
-                "Accept": headers.get("Accept", "application/json, text/plain, */*"),
-                "Content-Type": "application/json",
-                "Platform": headers.get("Platform", "3"),
-                "Timestamp": str(int(time.time() * 1000)),
-                "User-Agent": headers.get(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-                ),
-                "Origin": headers.get("Origin", "https://www.jiuyangongshe.com"),
-                "Referer": headers.get("Referer", "https://www.jiuyangongshe.com/"),
-            }
-        )
+        # 使用 config.py 中的配置，不再依赖 req_acc.txt
+        headers = dict(JYG_LOGIN_HEADERS)
+        timestamp = str(int(time.time() * 1000))
+        headers["timestamp"] = timestamp
+        # token = MD5(salt + ":" + timestamp)
+        token_str = f"{JYG_TOKEN_SALT}:{timestamp}"
+        headers["token"] = hashlib.md5(token_str.encode()).hexdigest()
 
         req = request.Request(
-            url=self.login_url,
+            url=JYG_LOGIN_URL,
             data=body,
             method="POST",
             headers=headers,
@@ -659,10 +651,6 @@ class ExportService:
         err_code = str(result.get("errCode", ""))
         msg = str(result.get("msg", "")).strip()
         if err_code and err_code != "0":
-            if err_code == "9":
-                raise RuntimeError(
-                    "登录失败：版本过低校验未通过。请更新 _doc/req_acc.txt 第一条抓包请求头后重试。"
-                )
             if msg:
                 raise RuntimeError(f"登录失败：{msg}")
             raise RuntimeError(f"登录失败：errCode={err_code}")
@@ -699,16 +687,22 @@ class ExportService:
         else:
             headers["Cookie"] = f"SESSION={token}"
 
+        # 动态生成 timestamp 和 token 头（与登录接口保持一致）
+        timestamp = str(int(time.time() * 1000))
+        token_str = f"{JYG_TOKEN_SALT}:{timestamp}"
+        token_header = hashlib.md5(token_str.encode()).hexdigest()
+
         headers.update(
             {
                 "Accept": headers.get("Accept", "application/json, text/plain, */*"),
                 "Content-Type": "application/json",
                 "Platform": headers.get("Platform", headers.get("platform", "3")),
-                "Timestamp": str(int(time.time() * 1000)),
+                "Timestamp": timestamp,
+                "Token": token_header,
                 "User-Agent": headers.get(
                     "User-Agent",
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
+                    "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
                 ),
                 "Origin": headers.get("Origin", "https://www.jiuyangongshe.com"),
                 "Referer": headers.get("Referer", "https://www.jiuyangongshe.com/"),

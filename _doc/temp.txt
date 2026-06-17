@@ -1,0 +1,15 @@
+curl -X POST 'https://app.jiuyangongshe.com/jystock-app/api/v1/action/field' -H 'Content-Length: 28' -H 'Host: app.jiuyangongshe.com' -H 'Sec-Ch-Ua-Platform: "Windows"' -H 'Timestamp: 1781710148449' -H 'Sec-Ch-Ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' -H 'Sec-Ch-Ua-Mobile: ?0' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'Dnt: 1' -H 'Content-Type: application/json' -H 'Token: 6213ce73d510aa3150ce89dba7e529a0' -H 'Platform: 3' -H 'Origin: https://www.jiuyangongshe.com' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: SESSION=NTcwYzhjN2MtODhlOS00MGE1LTlhNGItYmQwMzE0ODdmMzI2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777875926' -H 'Connection: close' -d '{"date":"2026-06-17","pc":1}'
+
+
+HTTP/1.1 200
+Date: Wed, 17 Jun 2026 15:29:08 GMT
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+Access-Control-Allow-Origin: https://www.jiuyangongshe.com
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE
+Access-Control-Allow-Headers: Access-Control-Allow-Headers,Access-Control-Allow-Origin,DNT,X-CustomHeader,X-Requested-With,Content-Type,source,referer-host,jb-authorization,manager-authorization,guest-id,platform,token,Token,Access-Token,timestamp,authorization,Page-Time,terminal,App
+Access-Control-Allow-Credentials: true
+tlogTraceId: 71781219427401568714752
+
+{"msg":"token无效，请重试","errCode":"9","serverTime":1781710148}

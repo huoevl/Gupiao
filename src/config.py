@@ -24,3 +24,24 @@ GPT_EXPORT_COLUMNS = [
     ("是否一字", "is_one_word"),
     ("题材", "theme"),
 ]
+
+# 九研公社登录接口配置
+JYG_LOGIN_URL = "https://app.jiuyangongshe.com/jystock-app/api/v1/user/login"
+JYG_TOKEN_SALT = "Uu0KfOB8iUP69d3c"  # token = MD5(salt + ":" + timestamp)
+JYG_LOGIN_HEADERS = {
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+    "sec-ch-ua-mobile": "?0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "DNT": "1",
+    "Content-Type": "application/json",
+    "platform": "3",
+    "Origin": "https://www.jiuyangongshe.com",
+    "Sec-Fetch-Site": "same-site",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Dest": "empty",
+    "Referer": "https://www.jiuyangongshe.com/",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
+}

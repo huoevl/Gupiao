@@ -1,4 +1,32 @@
-curl -X POST 'https://app.jiuyangongshe.com/jystock-app/api/v1/user/login' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Content-Type: application/json' -H 'sec-ch-ua-platform: "Windows"' -H 'timestamp: 1777868700681' -H 'sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' -H 'sec-ch-ua-mobile: ?0' -H 'DNT: 1' -H 'token: 64b7e2e7994f56ce25e6d68f44ddf240' -H 'platform: 3' -H 'Origin: https://www.jiuyangongshe.com' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: SESSION=ZTM2ODFmMzMtZDA1OC00MmRiLWFlZjUtOTFjZDRhNDZlN2I2; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1777825048; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1777867638' -d '{"phone":"15185759660","password":"XXyy433443"}' --http1.1
+curl -X POST 'https://app.jiuyangongshe.com/jystock-app/api/v1/user/login' -H 'Host: app.jiuyangongshe.com' -H 'Connection: keep-alive' -H 'Content-Length: 47' -H 'sec-ch-ua-platform: "Windows"' -H 'timestamp: 1781681974970' -H 'sec-ch-ua: "Google Chrome";v="149", "Chromium";v="149", "NotA;Brand";v="24"' -H 'sec-ch-ua-mobile: ?0' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'DNT: 1' -H 'Content-Type: application/json' -H 'token: 5b09f5a60b85835fa1f2357e7ca63cab' -H 'platform: 3' -H 'Origin: https://www.jiuyangongshe.com' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: SESSION=Nzk5MDQ2ZTYtODFkOS00NTExLWFlNzEtYzRkMjdhOWEyMjZi; Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1781681837; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1781681842' -d '{"phone":"15185759660","password":"XXyy433443"}'
 
-以下请求不行，太简单
-curl -X POST 'https://app.jiuyangongshe.com/https://app.jiuyangongshe.com/jystock-app/api/v1/user/login' -H 'User-Agent: Mozilla/5.0' -H 'Connection: close' -H 'Accept: application/json, text/plain, */*' -H 'Accept-Encoding: identity' -H 'Content-Type: application/json' -H 'Platform: 3' -H 'Timestamp: 1777874693166' -d '{"phone": "15185759660", "password": "XX\u8bed\u8a0033443"}' --http1.1
+
+//新的请求1
+curl -X OPTIONS 'https://app.jiuyangongshe.com/jystock-app/api/v1/user/login' -H 'Host: app.jiuyangongshe.com' -H 'Connection: keep-alive' -H 'Accept: */*' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: content-type,platform,timestamp,token' -H 'Origin: https://www.jiuyangongshe.com' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6'
+//新的响应1
+HTTP/1.1 200
+Date: Wed, 17 Jun 2026 14:32:30 GMT
+Content-Type: application/json;charset=UTF-8
+Content-Length: 0
+Connection: keep-alive
+Access-Control-Allow-Origin: https://www.jiuyangongshe.com
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE
+Access-Control-Allow-Headers: Access-Control-Allow-Headers,Access-Control-Allow-Origin,DNT,X-CustomHeader,X-Requested-With,Content-Type,source,referer-host,jb-authorization,manager-authorization,guest-id,platform,token,Token,Access-Token,timestamp,authorization,Page-Time,terminal,App
+Access-Control-Allow-Credentials: true
+
+//新的请求2
+curl -X POST 'https://app.jiuyangongshe.com/jystock-app/api/v1/user/login' -H 'Host: app.jiuyangongshe.com' -H 'Connection: keep-alive' -H 'Content-Length: 47' -H 'sec-ch-ua-platform: "Windows"' -H 'timestamp: 1781706750176' -H 'sec-ch-ua: "Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"' -H 'sec-ch-ua-mobile: ?0' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36' -H 'Accept: application/json, text/plain, */*' -H 'DNT: 1' -H 'Content-Type: application/json' -H 'token: cb45ae2e7490c250adf7a19e8bd6ec9a' -H 'platform: 3' -H 'Origin: https://www.jiuyangongshe.com' -H 'Sec-Fetch-Site: same-site' -H 'Sec-Fetch-Mode: cors' -H 'Sec-Fetch-Dest: empty' -H 'Referer: https://www.jiuyangongshe.com/' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: Hm_lvt_58aa18061df7855800f2a1b32d6da7f4=1781681837; Hm_lpvt_58aa18061df7855800f2a1b32d6da7f4=1781681982' -d '{"phone":"15185759660","password":"XXyy433443"}'
+//新的响应2
+HTTP/1.1 200
+Date: Wed, 17 Jun 2026 14:32:30 GMT
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Access-Control-Allow-Origin: https://www.jiuyangongshe.com
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE
+Access-Control-Allow-Headers: Access-Control-Allow-Headers,Access-Control-Allow-Origin,DNT,X-CustomHeader,X-Requested-With,Content-Type,source,referer-host,jb-authorization,manager-authorization,guest-id,platform,token,Token,Access-Token,timestamp,authorization,Page-Time,terminal,App
+Access-Control-Allow-Credentials: true
+tlogTraceId: 71781219413148723937280
+Set-Cookie: SESSION=MTkxYjIxODEtZDRmYS00MGM1LTg3ZGYtZDVkNDQ0N2IxY2Nl; Max-Age=2592000; Expires=Fri, 17-Jul-2026 14:32:30 GMT; Path=/jystock-app/; HttpOnly
+
+{"msg":"","data":{"user_id":"8217170559234acba557440b8edb40f3","country_code":"+86","phone":"15185759660","nickname":"何吓吓","avatar":"https://cdn.jiuyangongshe.com/1732515698232.png","gender":1,"profile":"这个人很懒，什么都没有留下","open_id":"oeEsTs_qjwg0giC0ckAGdDPakw0E","pc_open_id":null,"union_id":"o_jtewc0Yb3JlXAcX-6Yj4EGvPg8","city":null,"area":null,"follow_count":5,"fans_count":0,"like_count":0,"posts":0,"energy":100,"integral":0.0,"integral_grade":10,"balance":0,"interaction":0.0,"verify":0,"msg_vibrate":0,"faction":0,"faction_id":"","investment_style":"","investment_style_id":"","status":0,"downgrade":0,"is_sys_user":0,"sys_user_type":null,"reward_read_day":7,"reward_read_time":null,"no_read_limit_time":null,"change_nickname_limit_time":null,"change_info_limit_time":null,"gag_time":null,"lock_time":null,"pwd_error":0,"medal_count":0,"article_reject_count":0,"comment_reject_count":0,"withdraw_review":0,"newest_article_tool_time":null,"create_time":"2024-11-25 14:18:07","update_time":null,"last_update_time":"2026-05-07 18:34:20","low_quality":0,"has_pwd":1,"user_no":"8217170559234acba557440b8edb40f3","sessionToken":"MTkxYjIxODEtZDRmYS00MGM1LTg3ZGYtZDVkNDQ0N2IxY2Nl"},"errCode":"0","serverTime":1781706750}
