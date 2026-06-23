@@ -66,22 +66,26 @@ JYG_ACTION_FIELD_HEADERS = {
     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
 }
 
-# 同花顺行情接口配置（获取成交额/换手率）
-THS_CODE_URL_TEMPLATE = (
-    "https://qd.10jqka.com.cn/quote.php?"
-    "cate=real&type=stock&return=json&callback=showStockData&code={codes}"
+# 东方财富行情接口配置（获取成交额/换手率/振幅）
+# 无需 Cookie，纯 requests 即可请求
+# secid 格式：0.代码=深圳, 1.代码=上海
+# f6=成交额, f7=振幅(%), f8=换手率, f12=代码, f14=名称
+EMoney_CODE_URL_TEMPLATE = (
+    "https://push2.eastmoney.com/api/qt/ulist.np/get?"
+    "fltt=2&secids={secids}&fields=f12,f14,f6,f7,f8"
+    "&ut=fa5fd1943c7b386f172d6893dbbd1d0c"
 )
-THS_CODE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+EMoney_CODE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
-    "Referer": "https://stockpage.10jqka.com.cn/",
-    "sec-ch-ua": '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://quote.eastmoney.com/",
+    "Connection": "keep-alive",
+    "sec-ch-ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
-    "DNT": "1",
-    "Sec-Fetch-Site": "same-site",
-    "Sec-Fetch-Mode": "no-cors",
     "Sec-Fetch-Dest": "script",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6",
+    "Sec-Fetch-Mode": "no-cors",
+    "Sec-Fetch-Site": "same-site",
 }

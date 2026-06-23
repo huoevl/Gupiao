@@ -234,7 +234,6 @@ class ExportApp:
 
     def _on_close(self) -> None:
         self._save_app_state()
-        self.service.close_browser_resources()
         self.root.destroy()
 
     def _pick_date(self) -> None:

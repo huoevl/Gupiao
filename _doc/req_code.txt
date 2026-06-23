@@ -1,1 +1,68 @@
-curl -X GET 'https://qd.10jqka.com.cn/quote.php?cate=real&type=stock&return=json&callback=showStockData&code=300619,300620' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'sec-ch-ua: "Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"' -H 'sec-ch-ua-mobile: ?0' -H 'sec-ch-ua-platform: "Windows"' -H 'DNT: 1' -H 'Upgrade-Insecure-Requests: 1' -H 'Sec-Fetch-Site: none' -H 'Sec-Fetch-Mode: navigate' -H 'Sec-Fetch-User: ?1' -H 'Sec-Fetch-Dest: document' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,en-US;q=0.6' -H 'Cookie: spversion=20130314; searchGuide=sg; Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1777821468; HMACCOUNT=0F98EC475E290365; _ga=GA1.1.824953103.1777821470; Hm_lvt_722143063e4892925903024537075d0d=1777821474; Hm_lpvt_722143063e4892925903024537075d0d=1777821474; Hm_lvt_929f8b362150b1f77b477230541dbbc2=1777821474; Hm_lpvt_929f8b362150b1f77b477230541dbbc2=1777821474; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1777821474; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1777821474; userid=ths_gu_a5e23070c866b067e9d45e1cccfd6081; search_history=[{%22keyword%22:%22601991%22%2C%22timestamp%22:1777821514450%2C%22type%22:%22general%22}]; _clck=5n2s18%7C2%7Cg5q%7C0%7C0; historystock=300069%7C*%7C300619%7C*%7C600821%7C*%7C300068; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1777979051; _ga_H2RK0R0681=GS2.1.s1777979053$o3$g0$t1777979053$j60$l0$h0; v=Ax_dLEs7ii-OS44wpOvhGmEcrnishHMmjdh3GrFsu04VQDEmuVQDdp2oBrfC' --http1.1
+curl -X GET 'https://qd.10jqka.com.cn/quote.php?cate=real&type=stock&return=json&callback=showStockData&code=300619,300620' -H 'Host: qd.10jqka.com.cn' -H 'Connection: keep-alive' -H 'sec-ch-ua: "Microsoft Edge";v="149", "Chromium";v="149", "Not)A;Brand";v="24"' -H 'sec-ch-ua-mobile: ?0' -H 'sec-ch-ua-platform: "Windows"' -H 'Upgrade-Insecure-Requests: 1' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' -H 'Sec-Fetch-Site: none' -H 'Sec-Fetch-Mode: navigate' -H 'Sec-Fetch-User: ?1' -H 'Sec-Fetch-Dest: document' -H 'Accept-Encoding: gzip, deflate, br, zstd' -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6' -H 'Cookie: Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1781713782; HMACCOUNT=3C22B1387498FB56; userid=ths_gu_39c96359cb510f5468653594c430d3b0; _ga=GA1.1.1533471750.1781713784; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1781713802; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1781713809; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1781713813; _ga_H2RK0R0681=GS2.1.s1781713784$o1$g1$t1781713818$j26$l0$h0; v=A-Y75rpzsEORBWTny1ZbDydjN1dtxyoU_Ale5dCP0zrkvYjJOFd6kcybrvaj'
+
+
+curl ^"https://qd.10jqka.com.cn/quote.php?cate=real^&type=stock^&return=json^&callback=showStockData^&code=300619^" ^
+  -H ^"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7^" ^
+  -H ^"Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6^" ^
+  -H ^"Connection: keep-alive^" ^
+  -b ^"_ga=GA1.1.1533471750.1781713784; Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1781713782,1781767621; HMACCOUNT=3C22B1387498FB56; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1781713809,1781767626; log=; Hm_lvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1781767647; Hm_lvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1781767676; userid=ths_gu_39c96359cb510f5468653594c430d3b0; v=Aw8SO9ZcuTV2773JjgDCWEaAnqgcNGBj_YFnWCEdqWyHPyFWKQTzpg1Y978y; _ga_H2RK0R0681=GS2.1.s1781767768^$o2^$g1^$t1781768031^$j60^$l0^$h0^" ^
+  -H ^"Sec-Fetch-Dest: document^" ^
+  -H ^"Sec-Fetch-Mode: navigate^" ^
+  -H ^"Sec-Fetch-Site: none^" ^
+  -H ^"Sec-Fetch-User: ?1^" ^
+  -H ^"Upgrade-Insecure-Requests: 1^" ^
+  -H ^"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0^" ^
+  -H ^"sec-ch-ua: ^\^"Microsoft Edge^\^";v=^\^"149^\^", ^\^"Chromium^\^";v=^\^"149^\^", ^\^"Not)A;Brand^\^";v=^\^"24^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^"
+
+
+
+  curl ^"https://qd.10jqka.com.cn/quote.php?cate=real^&type=stock^&return=json^&callback=showStockData^&code=300619,300620^" ^
+  -H ^"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7^" ^
+  -H ^"Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6^" ^
+  -H ^"Connection: keep-alive^" ^
+  -b ^"_ga=GA1.1.1533471750.1781713784; Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1781713782,1781767621; HMACCOUNT=3C22B1387498FB56; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1781713809,1781767626; log=; Hm_lvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1781767647; Hm_lvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1781767676; userid=ths_gu_39c96359cb510f5468653594c430d3b0; v=Aw8SO9ZcuTV2773JjgDCWEaAnqgcNGBj_YFnWCEdqWyHPyFWKQTzpg1Y978y; _ga_H2RK0R0681=GS2.1.s1781767768^$o2^$g1^$t1781768031^$j60^$l0^$h0^" ^
+  -H ^"Sec-Fetch-Dest: document^" ^
+  -H ^"Sec-Fetch-Mode: navigate^" ^
+  -H ^"Sec-Fetch-Site: none^" ^
+  -H ^"Sec-Fetch-User: ?1^" ^
+  -H ^"Upgrade-Insecure-Requests: 1^" ^
+  -H ^"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0^" ^
+  -H ^"sec-ch-ua: ^\^"Microsoft Edge^\^";v=^\^"149^\^", ^\^"Chromium^\^";v=^\^"149^\^", ^\^"Not)A;Brand^\^";v=^\^"24^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^"
+
+
+  curl ^"https://qd.10jqka.com.cn/quote.php?cate=real^&type=stock^&return=json^&callback=showStockData^&code=300619,300620^" ^
+  -H ^"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7^" ^
+  -H ^"Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6^" ^
+  -H ^"Cache-Control: max-age=0^" ^
+  -H ^"Connection: keep-alive^" ^
+  -b ^"_ga=GA1.1.1533471750.1781713784; Hm_lvt_69929b9dce4c22a060bd22d703b2a280=1781713782,1781767621; HMACCOUNT=3C22B1387498FB56; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1781713809,1781767626; log=; Hm_lvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_722143063e4892925903024537075d0d=1781767647; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1781767647; Hm_lvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_929f8b362150b1f77b477230541dbbc2=1781767647; Hm_lpvt_69929b9dce4c22a060bd22d703b2a280=1781767676; userid=ths_gu_39c96359cb510f5468653594c430d3b0; _ga_H2RK0R0681=GS2.1.s1781767768^$o2^$g1^$t1781768031^$j60^$l0^$h0; v=A9rHGPNDZOan7-hKve7vK1tnK4v5C17l0I_SieRThm04V3Q1zJuu9aAfIpi3^" ^
+  -H ^"Referer: https://qd.10jqka.com.cn/quote.php?cate=real^&type=stock^&return=json^&callback=showStockData^&code=300619,300620^" ^
+  -H ^"Sec-Fetch-Dest: document^" ^
+  -H ^"Sec-Fetch-Mode: navigate^" ^
+  -H ^"Sec-Fetch-Site: same-origin^" ^
+  -H ^"Sec-Fetch-User: ?1^" ^
+  -H ^"Upgrade-Insecure-Requests: 1^" ^
+  -H ^"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0^" ^
+  -H ^"sec-ch-ua: ^\^"Microsoft Edge^\^";v=^\^"149^\^", ^\^"Chromium^\^";v=^\^"149^\^", ^\^"Not)A;Brand^\^";v=^\^"24^\^"^" ^
+  -H ^"sec-ch-ua-mobile: ?0^" ^
+  -H ^"sec-ch-ua-platform: ^\^"Windows^\^"^"
+
+HTTP/1.1 200 OK
+Server: openresty
+Date: Wed, 17 Jun 2026 16:30:37 GMT
+Content-Type: text/html; charset=UTF-8
+Vary: Accept-Encoding
+news: 200_6
+news: 208_53
+Content-Encoding: gzip
+X-Cache: MISS from cachemd204176.10jqka.com.cn
+Via: 1.1 cachemd204176.10jqka.com.cn (squid), http/1.1 cachedgdx127-77.10jqka.com.cn (ApacheTrafficServer/10.0.3 [cMsSf ])
+Age: 0
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+showStockData({"info":{"300619":{"name":"\u91d1\u94f6\u6cb3"},"300620":{"name":"\u5149\u5e93\u79d1\u6280"}},"data":{"300619":{"10":"39.66","8":"40.47","9":"39.40","13":"4724248.00","19":"188097150.00","7":"39.51","15":"2219628.00","14":"2298490.00","69":"48.10","70":"32.06","12":"16","17":"28500.00","264648":"-0.420","199112":"-1.048","1968584":"3.225","2034120":"","1378761":"39.815","526792":"2.670","395720":"-18800.000","461256":"-67.143","3475914":"5809654400.000","1771976":"1.018","6":"40.08","11":""},"300620":{"10":"395.20","8":"404.98","9":"379.10","13":"15839690.00","19":"6222320500.00","7":"379.10","15":"6582285.00","14":"7276843.00","69":"470.99","70":"313.99","12":"21","17":"223975.00","264648":"2.710","199112":"0.691","1968584":"6.410","2034120":"550.313","1378761":"392.831","526792":"6.594","395720":"13000.000","461256":"33.163","3475914":"97655180000.000","1771976":"0.819","6":"392.49","11":""}}})

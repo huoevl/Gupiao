@@ -9,7 +9,6 @@ import time
 import gzip
 import zlib
 from urllib import error, request
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from src.config import (
     DOC_DIR,
@@ -20,8 +19,6 @@ from src.config import (
     JYG_LOGIN_URL,
     JYG_TOKEN_SALT,
     OUT_DIR,
-    THS_CODE_HEADERS,
-    THS_CODE_URL_TEMPLATE,
 )
 from src.exporters.gpt_exporter import export_csv, export_excel, export_json
 from src.exporters.xmind_exporter import export_xmind
@@ -39,11 +36,6 @@ class ExportService:
         self.code_metrics_cache: dict[str, dict[str, str]] = {}
         self._latest_trading_day_cache: str | None = None
         self._trading_day_status_cache: dict[str, bool] = {}
-        self._browser_playwright = None
-        self._code_browser = None
-        self._code_browser_context = None
-        self._code_browser_page = None
-        self._code_browser_user_agent = ""
 
     def get_available_dates(self) -> list[str]:
         return []
@@ -145,62 +137,24 @@ class ExportService:
 
     @staticmethod
     def _sanitize_code_url(url: str) -> str:
-        """
-        兼容历史错误 URL：
-        https://qd.10jqka.com.cn/https://qd.10jqka.com.cn/quote.php?...
-        -> https://qd.10jqka.com.cn/quote.php?...
-        """
+        """兼容历史错误 URL"""
         value = (url or "").strip().strip("`").strip("\"").strip("'")
-        if not value:
-            return value
-        quote_idx = value.lower().find("/quote.php")
-        if quote_idx != -1:
-            suffix = value[quote_idx:]
-            if not suffix.startswith("/"):
-                suffix = f"/{suffix}"
-            return f"https://qd.10jqka.com.cn{suffix}"
-        match = re.search(r"https?://qd\.10jqka\.com\.cn/quote\.php\?.*", value, flags=re.IGNORECASE)
-        if match:
-            return match.group(0)
         return value
 
     @staticmethod
     def _build_code_request_url(url_template: str, codes: list[str]) -> str:
-        parsed = urlparse(ExportService._sanitize_code_url(url_template))
-        query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
-        # 保留原有参数，只替换 code；逗号必须保留为 ","，不能编码成 "%2C"
-        query_pairs = [(k, v) for k, v in query_pairs if k.lower() != "code"]
-        query_pairs.append(("code", ",".join(codes)))
-        new_query = urlencode(query_pairs, doseq=True, safe=",")
-        # 无论模板中出现何种异常前缀，都强制重建为标准 quote.php 地址，避免双前缀问题复现。
-        return urlunparse(("https", "qd.10jqka.com.cn", "/quote.php", "", new_query, ""))
+        # 保留兼容性，东方财富路径用 _fetch_code_metrics_batch 直接构建
+        return url_template
 
     @staticmethod
     def _parse_code_metrics_text(raw: str) -> dict[str, dict[str, str]]:
-        start_index = raw.find("(")
-        end_index = raw.rfind(")")
-        if start_index == -1 or end_index == -1 or end_index <= start_index:
-            return {}
-        payload_text = raw[start_index + 1 : end_index]
-        payload = json.loads(payload_text)
-        return ExportService._parse_code_metrics_payload(payload)
+        # 东方财富响应为标准 JSON，此方法保留兼容性但不再使用
+        return {}
 
     @staticmethod
     def _parse_code_metrics_payload(payload: dict) -> dict[str, dict[str, str]]:
-        data = payload.get("data", {})
-        if not isinstance(data, dict) or not data:
-            return {}
-        result: dict[str, dict[str, str]] = {}
-        for code, metrics in data.items():
-            if not isinstance(metrics, dict):
-                continue
-            code_key = str(code)[-6:]
-            result[code_key] = {
-                "turnover": format_compact_amount(metrics.get("19", "")),
-                "turnover_rate": format_percent(metrics.get("1968584", "")),
-                "is_one_word": format_one_word(metrics.get("526792", "")),
-            }
-        return result
+        # 保留兼容性
+        return {}
 
     @staticmethod
     def _decode_http_response(resp) -> str:
@@ -218,131 +172,6 @@ class ExportService:
                 pass
         return raw_bytes.decode("utf-8", errors="ignore")
 
-    @staticmethod
-    def _sanitize_cookie_header(cookie_header: str) -> str:
-        """
-        清理可能导致风控拦截的临时 cookie（如 vvvv=1），其余 cookie 保留。
-        """
-        if not cookie_header:
-            return ""
-        items = [item.strip() for item in cookie_header.split(";") if item.strip()]
-        clean_items = [item for item in items if not item.lower().startswith("vvvv=")]
-        return "; ".join(clean_items)
-
-    @staticmethod
-    def _looks_like_access_denied(raw: str) -> bool:
-        lowered = (raw or "").lower()
-        return any(
-            keyword in lowered
-            for keyword in (
-                "unauthorized",
-                "forbidden",
-                "nginx forbidden",
-                "window.location.href",
-                "chameleon",
-            )
-        )
-
-    def _ensure_code_browser_page(self, user_agent: str, accept_language: str | None):
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError as exc:
-            raise RuntimeError("未安装 playwright，请先执行: python -m pip install -r requirements.txt") from exc
-
-        if self._code_browser_page is not None and self._code_browser_user_agent == user_agent:
-            return self._code_browser_page
-
-        self.close_browser_resources()
-        self._browser_playwright = sync_playwright().start()
-        self._code_browser = self._browser_playwright.chromium.launch(
-            headless=True,
-            args=["--disable-blink-features=AutomationControlled"],
-        )
-        self._code_browser_context = self._code_browser.new_context(
-            user_agent=user_agent,
-            locale="zh-CN",
-            extra_http_headers={
-                "Accept-Language": accept_language or "zh-CN,zh;q=0.9"
-            },
-        )
-        self._code_browser_page = self._code_browser_context.new_page()
-        self._code_browser_page.goto(
-            "https://stockpage.10jqka.com.cn/",
-            wait_until="domcontentloaded",
-            timeout=30000,
-        )
-        self._code_browser_page.wait_for_timeout(1200)
-        self._code_browser_user_agent = user_agent
-        return self._code_browser_page
-
-    def close_browser_resources(self) -> None:
-        page = self._code_browser_page
-        context = self._code_browser_context
-        browser = self._code_browser
-        playwright = self._browser_playwright
-        self._code_browser_page = None
-        self._code_browser_context = None
-        self._code_browser = None
-        self._browser_playwright = None
-        self._code_browser_user_agent = ""
-        for resource in (page, context, browser, playwright):
-            if resource is None:
-                continue
-            try:
-                if hasattr(resource, "stop"):
-                    resource.stop()
-                else:
-                    resource.close()
-            except Exception:
-                pass
-
-    def _fetch_code_metrics_batch_via_browser(
-        self,
-        url: str,
-        user_agent: str,
-        accept_language: str | None,
-    ) -> dict[str, dict[str, str]]:
-        try:
-            page = self._ensure_code_browser_page(user_agent, accept_language)
-            payload_text = page.evaluate(
-                """
-                async ({ url }) => {
-                  return await new Promise((resolve) => {
-                    const timer = setTimeout(() => resolve(""), 15000);
-                    window.showStockData = (payload) => {
-                      clearTimeout(timer);
-                      resolve(JSON.stringify(payload));
-                    };
-                    const oldScript = document.querySelector('script[data-ths-quote="1"]');
-                    if (oldScript) {
-                      oldScript.remove();
-                    }
-                    const script = document.createElement("script");
-                    script.src = url;
-                    script.async = true;
-                    script.dataset.thsQuote = "1";
-                    script.onerror = () => {
-                      clearTimeout(timer);
-                      resolve("");
-                    };
-                    document.head.appendChild(script);
-                  });
-                }
-                """,
-                {"url": url},
-            )
-        except Exception:
-            return {}
-        if not payload_text:
-            return {}
-        try:
-            payload = json.loads(payload_text)
-            if not isinstance(payload, dict):
-                return {}
-            return self._parse_code_metrics_payload(payload)
-        except Exception:
-            return {}
-
     def _fetch_code_metrics_batch(self, codes: list[str]) -> dict[str, dict[str, str]]:
         clean_codes = [code[-6:] for code in codes if code and len(code) >= 6]
         clean_codes = list(dict.fromkeys(clean_codes))
@@ -352,31 +181,42 @@ class ExportService:
         if not uncached_codes:
             return {code: self.code_metrics_cache.get(code, {}) for code in clean_codes}
 
-        # 使用 config.py 配置构建 URL
-        url = THS_CODE_URL_TEMPLATE.replace("{codes}", ",".join(uncached_codes))
-        url = self._sanitize_code_url(url)
-        
-        # 使用 config.py 配置的请求头
-        headers = dict(THS_CODE_HEADERS)
-        user_agent = headers.get("User-Agent", "")
-        accept_language = headers.get("Accept-Language", "")
-
-        batch_metrics = self._fetch_code_metrics_batch_via_browser(
-            url=url,
-            user_agent=user_agent,
-            accept_language=accept_language,
-        )
-        if not batch_metrics:
-            req = request.Request(url=url, method="GET", headers=headers)
-            try:
-                with self._open_url(req, timeout=15) as resp:
-                    raw = self._decode_http_response(resp)
-                if self._looks_like_access_denied(raw):
-                    batch_metrics = {}
-                else:
-                    batch_metrics = self._parse_code_metrics_text(raw)
-            except Exception:
-                batch_metrics = {}
+        batch_metrics: dict[str, dict[str, str]] = {}
+        try:
+            import requests as _requests
+            codes_param = ",".join(
+                f"sh{c}" if c.startswith("6") else f"sz{c}" for c in uncached_codes
+            )
+            url = f"http://qt.gtimg.cn/q={codes_param}"
+            session = _requests.Session()
+            session.trust_env = False
+            resp = session.get(url, headers={"Referer": "https://gu.qq.com"}, timeout=15)
+            resp.encoding = "gbk"
+            for line in resp.text.split(";"):
+                line = line.strip()
+                if not line:
+                    continue
+                # v_sh600519="1~贵州茅台~..."
+                eq = line.find('="')
+                if eq == -1:
+                    continue
+                key = line[eq - 8: eq]  # e.g. sh600519
+                code = key[-6:]
+                fields = line[eq + 2:].rstrip('"').split("~")
+                if len(fields) < 44:
+                    continue
+                try:
+                    amount = float(fields[37]) * 10000  # 万元 -> 元
+                except ValueError:
+                    amount = 0
+                batch_metrics[code] = {
+                    "turnover": format_compact_amount(str(amount)),
+                    "turnover_rate": format_percent(fields[38]),
+                    "is_one_word": format_one_word(fields[43]),
+                }
+        except Exception as e:
+            print(f"[DEBUG] EMoney exception: {type(e).__name__}: {e}")
+            batch_metrics = {}
 
         for code in uncached_codes:
             self.code_metrics_cache[code] = batch_metrics.get(
